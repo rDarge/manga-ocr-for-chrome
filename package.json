@@ -1,0 +1,41 @@
+{
+  "name": "manga-ocr-for-chrome",
+  "version": "0.0.0",
+  "description": "Extract japanese text from images on a page",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "dist": "run-script-os",
+    "dist:win32": "@powershell If (-Not (Test-Path '.\\dist\\')) {mkdir dist}; cp \"./res/*\" -Recurse \"./dist/\" -Force",
+    "dist:darwin": "if [[ ! -d \"./dist\" ]]; then mkdir dist; fi; cp -r ./res/* ./dist/",
+    "dist:linux": "if [ ! -d \"./dist\" ]; then mkdir dist; fi; cp -r ./res/* ./dist/",
+    "clean": "run-script-os",
+    "clean:win32": "@powershell Foreach ($file in ('.\\out\\','.\\dist\\')) { If (Test-Path $file) {rm $file -r}}",
+    "clean:darwin": "for file in './out/' './dist/'; do if [[ -e \"$file\" ]]; then rm -r \"$file\"; fi; done",
+    "clean:linux": "for file in './out/' './dist/'; do if [ -e \"$file\" ]; then rm -r \"$file\"; fi; done",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "manga-ocr",
+    "onnx",
+    "chrome-extension",
+    "ocr",
+    "japanese",
+    "manga",
+    "translation",
+    "utility"
+  ],
+  "author": "ryan.darge@gmail.com",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "onnxruntime-web": "^1.15.1"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.243",
+    "copy-webpack-plugin": "^11.0.0",
+    "run-script-os": "^1.1.6",
+    "typescript": "^5.2.2",
+    "webpack": "^5.88.2",
+    "webpack-cli": "^5.1.4"
+  }
+}
