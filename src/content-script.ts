@@ -96,12 +96,6 @@ pluginDiv.setAttribute("id", pluginId)
 pluginDiv.setAttribute("stlye", "position:absolute; left: 0, right: 0, top: 0, bottom: 0");
 document.body.append(pluginDiv);
 
-const controlDiv = document.createElement('div')
-controlDiv.setAttribute("style", "position:absolute; left: 50%; right:50%; top: 10px; width: 200px; border: 0.1rem solid; border-radius: 0.05rem; padding: 1rem;");
-controlDiv.innerText = "MangaOCR is loading..."
-pluginDiv.append(controlDiv);
-
-
 const startCapture = async (x1: number, x2: number, y1: number, y2: number) => {
     console.log("Beginning new capture at ", [x1, x2, y1, y2]); 
     const result = await chrome.runtime.sendMessage({x1, x2, y1, y2});
@@ -109,12 +103,22 @@ const startCapture = async (x1: number, x2: number, y1: number, y2: number) => {
 }
 
 const addUiButtons = () => {
+    const controlDiv = document.createElement('div')
+    controlDiv.setAttribute("style", "position:absolute; left: 50%; right:50%; top: 10px; width: 200px; border: 0.1rem solid; border-radius: 0.05rem; padding: 1rem;");
+    controlDiv.innerText = "MangaOCR is loading..."
+    pluginDiv.append(controlDiv);
+    
+    
     //Clear contents
     controlDiv.innerHTML = '';
     //Add button to initiate OCR capture and processing
     const startOCRButton = document.createElement('button');
     startOCRButton.innerText = "Start Capture";
     startOCRButton.onclick = ((ev: MouseEvent) => {
+
+        //Remove control div during screenshot
+        controlDiv.remove();
+
         //Insert Canvas overlay
         const canvas = document.createElement('canvas');
         pluginDiv.append(canvas);
@@ -154,20 +158,21 @@ const addUiButtons = () => {
                 y2 = lastClick.clientY - lastRect.top;
 
                 startCapture(x1, x2, y1, y2);
+                
+                //Remove canvas and replace UI buttons
                 canvas.remove();
+                addUiButtons();
             })
         })
         //Capture region
     });
     controlDiv.append(startOCRButton);
-
 }
 
 doExampleOCR().then((ocr) => {
     addUiButtons();
 }, (error) => {
     console.log(error);
-    controlDiv.innerText = "Loading failed! See console for details.";
 });
 
 

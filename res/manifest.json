@@ -11,7 +11,8 @@
     "permissions": [
         "tabs",
         "activeTab", 
-        "scripting"
+        "scripting",
+        "tabCapture"
     ],
     "action": {},
     "background": {
