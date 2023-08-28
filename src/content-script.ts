@@ -4,6 +4,8 @@ const vocabURL = chrome.runtime.getURL('vocab.txt');
 const sampleURL = chrome.runtime.getURL('sample.csv');
 const encoderModelURL = chrome.runtime.getURL('encoder_model.onnx');
 const decoderModelURL = chrome.runtime.getURL('decoder_model.onnx');
+
+
 async function doExampleOCR() {
     //Get vocab
     const vocabResource = await fetch(vocabURL);
@@ -70,17 +72,102 @@ async function doExampleOCR() {
             }
             return await runDecoder(decoderSession, newInput);
         } else {
-            const output = newResults.filter(idx => idx > 14).map(idx => vocab[Number(idx)]).join(' ');
+            const output = newResults.filter(idx => idx > 14).map(idx => vocab[Number(idx)]).join('');
             console.log(output);
             return output;
         }
     }
-    return await runDecoder(decoderSession, nextInput);
+    return runDecoder(decoderSession, nextInput);
 }
 
-doExampleOCR();
+//Delete any pre-existing control windows...
+const pluginId = "translation-control-window";
+const existingControl = document.getElementById(pluginId);
+if(existingControl) {
+    existingControl.remove();
+}
+
+//Constants
+const canvasColor = 'rgba(163, 163, 194, 0.4)';
+const clearColor = 'rgba(255, 255, 255, 0.0)';
+
+const pluginDiv = document.createElement('div');
+pluginDiv.setAttribute("id", pluginId)
+pluginDiv.setAttribute("stlye", "position:absolute; left: 0, right: 0, top: 0, bottom: 0");
+document.body.append(pluginDiv);
 
 const controlDiv = document.createElement('div')
-controlDiv.setAttribute("style", "position:absolute; left: 50%; right:50%, top: 10px; width: 200px; border: 0.5rem solid; border-radius 1rem ")
-document.body.append(controlDiv);
-controlDiv.innerText = "MangaOCR ready!"
+controlDiv.setAttribute("style", "position:absolute; left: 50%; right:50%; top: 10px; width: 200px; border: 0.1rem solid; border-radius: 0.05rem; padding: 1rem;");
+controlDiv.innerText = "MangaOCR is loading..."
+pluginDiv.append(controlDiv);
+
+
+const startCapture = async (x1: number, x2: number, y1: number, y2: number) => {
+    console.log("Beginning new capture at ", [x1, x2, y1, y2]); 
+    const result = await chrome.runtime.sendMessage({x1, x2, y1, y2});
+    console.log("Response from sw: ", result);
+}
+
+const addUiButtons = () => {
+    //Clear contents
+    controlDiv.innerHTML = '';
+    //Add button to initiate OCR capture and processing
+    const startOCRButton = document.createElement('button');
+    startOCRButton.innerText = "Start Capture";
+    startOCRButton.onclick = ((ev: MouseEvent) => {
+        //Insert Canvas overlay
+        const canvas = document.createElement('canvas');
+        pluginDiv.append(canvas);
+        canvas.setAttribute("style", "position: absolute; height: 100%; width: 100%; top: 0; left: 0")
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = canvasColor;
+        ctx.fillRect(0,0, canvas.width, canvas.height);
+
+        let x1: number, y1: number, x2: number, y2: number = 0;
+
+        //Watch for mouseclicks
+        canvas.onmousedown = ((firstClick: MouseEvent) => {
+            const firstRect = canvas.getBoundingClientRect();
+            x1 = firstClick.clientX - firstRect.left; 
+            y1 = firstClick.clientY - firstRect.top;
+
+            //Draw clear capture box around selected area
+            canvas.onmousemove = (move: MouseEvent) => {
+                const moveRect = canvas.getBoundingClientRect();
+                x2 = move.clientX - moveRect.left; 
+                y2 = move.clientY - moveRect.top;
+                
+                //Update canvas
+                ctx.clearRect(0,0, canvas.width, canvas.height);
+                ctx.fillStyle = canvasColor;
+                ctx.fillRect(0,0, canvas.width, canvas.height);
+                ctx.clearRect(x1 < x2 ? x1 : x2, y1 < y2 ? y1: y2, Math.abs(x2 - x1), Math.abs(y2 - y1));
+            }
+
+            //Finalize selection when they mouseup
+            canvas.onmouseup = ((lastClick: MouseEvent) => {
+                const lastRect = canvas.getBoundingClientRect();
+                x2 = lastClick.clientX - lastRect.left;
+                y2 = lastClick.clientY - lastRect.top;
+
+                startCapture(x1, x2, y1, y2);
+                canvas.remove();
+            })
+        })
+        //Capture region
+    });
+    controlDiv.append(startOCRButton);
+
+}
+
+doExampleOCR().then((ocr) => {
+    addUiButtons();
+}, (error) => {
+    console.log(error);
+    controlDiv.innerText = "Loading failed! See console for details.";
+});
+
+

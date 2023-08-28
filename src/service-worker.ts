@@ -7,3 +7,10 @@ chrome.action.onClicked.addListener(function (tab) {
         });
     }
 });
+
+chrome.runtime.onMessage.addListener(
+    function(request, sender, sendResponse) {
+        console.log("Received message from: ", sender.tab.url, request);
+        sendResponse({response:"Good job"});
+    }
+)
