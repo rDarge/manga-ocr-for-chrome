@@ -79,3 +79,8 @@ async function doExampleOCR() {
 }
 
 doExampleOCR();
+
+const controlDiv = document.createElement('div')
+controlDiv.setAttribute("style", "position:absolute; left: 50%; right:50%, top: 10px; width: 200px; border: 0.5rem solid; border-radius 1rem ")
+document.body.append(controlDiv);
+controlDiv.innerText = "MangaOCR ready!"

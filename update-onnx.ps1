@@ -1,0 +1,1 @@
+ (Get-Content -Path ./dist/content-script.js) -replace 'fetch\(([a-zA-z])([,\)]{1})', 'fetch(chrome.runtime.getURL($1)$2' | out-file ./dist/content-script.js

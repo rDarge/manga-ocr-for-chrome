@@ -13,7 +13,8 @@
     "clean:win32": "@powershell Foreach ($file in ('.\\out\\','.\\dist\\')) { If (Test-Path $file) {rm $file -r}}",
     "clean:darwin": "for file in './out/' './dist/'; do if [[ -e \"$file\" ]]; then rm -r \"$file\"; fi; done",
     "clean:linux": "for file in './out/' './dist/'; do if [ -e \"$file\" ]; then rm -r \"$file\"; fi; done",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "update-onnx": "@powershell ./update-onnx.ps1"
   },
   "keywords": [
     "manga-ocr",
