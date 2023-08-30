@@ -15,12 +15,13 @@ interface ImageRequest {
     y2: number
 }
 
+//TODO add better typing and filtering to messages, both offscreen and service worker get original message
 chrome.runtime.onMessage.addListener(
-    async function(request, sender, sendResponse) {
+    async function (request, sender, sendResponse) {
         console.log("Received message from: ", sender.tab.url, request);
         const imagePoints = request as ImageRequest;
         let recording = false;
-        
+
         // https://developer.chrome.com/docs/extensions/mv3/screen_capture/#audio-and-video-offscreen-doc
         //@ts-ignore see more details https://github.com/GoogleChrome/chrome-extensions-samples/blob/main/functional-samples/sample.tabcapture-recorder/service-worker.js
         const existingContexts = await chrome.runtime.getContexts({});
@@ -43,6 +44,20 @@ chrome.runtime.onMessage.addListener(
                 target: 'offscreen'
             });
         }
+
+        //@ts-ignore maybe the types are wrong and this does exist
+        const streamId = await chrome.tabCapture.getMediaStreamId({
+            targetTabId: sender.tab.id
+        });
+
+        const payload = {streamId: streamId, tabId: sender.tab.id, points: imagePoints};
+        const result = await chrome.runtime.sendMessage({
+            type: 'take-capture',
+            target: 'offscreen',
+            data: payload
+        });
+        sendResponse(result);
+        
 
         // none of this shit fucking works
         // TODO reference og google docs, this declaration seems stale
@@ -68,6 +83,6 @@ chrome.runtime.onMessage.addListener(
         //         console.log("Got response: ", response);
         //     })
         // });
-        sendResponse({response:"Good job"});
+        // sendResponse({ response: "Good job" });
     }
 )

@@ -5,17 +5,89 @@ const sampleURL = chrome.runtime.getURL('sample.csv');
 const encoderModelURL = chrome.runtime.getURL('encoder_model.onnx');
 const decoderModelURL = chrome.runtime.getURL('decoder_model.onnx');
 
+let cachedVocab = null;
+async function getVocab() {
+    if (cachedVocab) {
+        return cachedVocab;
+    } else {
+        //Get vocab
+        const vocabResource = await fetch(vocabURL);
+        if(!vocabResource.ok) {
+            console.error("Vocabulary is not okay", vocabResource);
+            return;
+        }
+        cachedVocab = (await vocabResource.text()).split("\r\n");
+        return cachedVocab;
+    }
+}
+
+let cachedEncoder = null;
+async function getEncoder() {
+    if (cachedEncoder) {
+        return cachedEncoder;
+    }
+
+    const encoderRequest = await fetch (encoderModelURL);
+    const encoderModel = await encoderRequest.arrayBuffer();
+    cachedEncoder = await ort.InferenceSession.create(encoderModel);
+    return cachedEncoder;
+}
+
+let cachedDecoder = null;
+async function getDecoder() {
+    if (cachedDecoder) {
+        return cachedDecoder;
+    }
+
+    const decoderRequest = await fetch (decoderModelURL);
+    const decoderModel = await decoderRequest.arrayBuffer();
+    cachedDecoder = await ort.InferenceSession.create(decoderModel);
+    return cachedDecoder;
+}
+
+const softmax = (logits: any) => {
+    //SOFTMAX RESULTS
+    const softmax = [];
+    let currentIndex = 0
+    let currentValue = logits[0];
+    for(let i = 1; i < logits.length; i += 1) {
+    if(i % 6144 == 0) {
+        softmax.push(currentIndex % 6144);
+        currentIndex = i;
+        currentValue = logits[i];
+    } else if(currentValue < logits[i]) {
+        currentIndex = i;
+        currentValue = logits[i];
+    }
+    }
+    softmax.push(currentIndex % 6144);
+    return softmax;
+}
+
+const runDecoder = async (decoder: any, inputFeed: any, vocab: string[]) => {
+    const results = await decoder.run(inputFeed);
+    const newResults = [2n,...softmax(results.logits.data).map(v => BigInt(v))];
+    const nextToken = newResults[newResults.length-1];
+
+    if(nextToken !== 3n && newResults.length < 300) {
+        const newIds = new BigInt64Array(newResults);
+        const newInput = {
+            input_ids: new ort.Tensor("int64", newIds, [1,newResults.length]),
+            encoder_hidden_states: inputFeed.encoder_hidden_states
+        }
+        return await runDecoder(decoder, newInput, vocab);
+    } else {
+        const output = newResults.filter(idx => idx > 14).map(idx => vocab[Number(idx)]).join('');
+        console.log(output);
+        return output;
+    }
+}
 
 async function doExampleOCR() {
-    //Get vocab
-    const vocabResource = await fetch(vocabURL);
-    if(!vocabResource.ok) {
-        console.error("Vocabulary is not okay", vocabResource);
-        return;
-    }
-    const vocab = (await vocabResource.text()).split("\r\n");
+    // Get vocab
+    const vocab = await getVocab();
 
-    //Get sample image
+    // Get sample image
     const sampleResource = await fetch(sampleURL);
     if(!sampleResource.ok) {
         console.error("Sample image is not okay", sampleResource);
@@ -23,61 +95,27 @@ async function doExampleOCR() {
     }
     const input = await sampleResource.text();
     const array = new Float32Array(input.split(',').map(v => parseFloat(v)));
+
+    // Process sample image
+    const sample_result = await ocr(array, vocab);
+    return sample_result;
+}
+
+async function ocr(array: Float32Array, vocab: string[]) {
     
     //Run encoder
-    const encoderRequest = await fetch (encoderModelURL);
-    const encoderModel = await encoderRequest.arrayBuffer();
-    const encoder = await ort.InferenceSession.create(encoderModel);
+    const encoder = await getEncoder();
     const input_data = new ort.Tensor("float32", array, [1,3,224,224]);
     const feeds = { pixel_values: input_data}
     const encoder_results = await encoder.run(feeds);
-    console.log(encoder_results);
+    console.log("encoder complete...  running decoder")
 
     //Run decoder
-    const decoderRequest = await fetch (decoderModelURL);
-    const decoderModel = await decoderRequest.arrayBuffer();
-    const decoderSession = await ort.InferenceSession.create(decoderModel);
+    const decoder = await getDecoder();
     const inputIds = new ort.Tensor("int64", new BigInt64Array([2n]), [1,1]);
     const nextInput = {input_ids:inputIds, encoder_hidden_states: encoder_results.last_hidden_state};
 
-    const softmax = (logits: any) => {
-        //SOFTMAX RESULTS
-        const softmax = [];
-        let currentIndex = 0
-        let currentValue = logits[0];
-        for(let i = 1; i < logits.length; i += 1) {
-        if(i % 6144 == 0) {
-            softmax.push(currentIndex % 6144);
-            currentIndex = i;
-            currentValue = logits[i];
-        } else if(currentValue < logits[i]) {
-            currentIndex = i;
-            currentValue = logits[i];
-        }
-        }
-        softmax.push(currentIndex % 6144);
-        return softmax;
-    }
-
-    const runDecoder = async (decoderSession: any, inputFeed: any) => {
-        const results = await decoderSession.run(inputFeed);
-        const newResults = [2n,...softmax(results.logits.data).map(v => BigInt(v))];
-        const nextToken = newResults[newResults.length-1];
-
-        if(nextToken !== 3n && newResults.length < 300) {
-            const newIds = new BigInt64Array(newResults);
-            const newInput = {
-                input_ids: new ort.Tensor("int64", newIds, [1,newResults.length]),
-                encoder_hidden_states: inputFeed.encoder_hidden_states
-            }
-            return await runDecoder(decoderSession, newInput);
-        } else {
-            const output = newResults.filter(idx => idx > 14).map(idx => vocab[Number(idx)]).join('');
-            console.log(output);
-            return output;
-        }
-    }
-    return runDecoder(decoderSession, nextInput);
+    return runDecoder(decoder, nextInput, vocab);
 }
 
 //Delete any pre-existing control windows...
@@ -98,43 +136,39 @@ document.body.append(pluginDiv);
 
 //TODO extract interfaces
 interface BACKEND_RESPONSE {
+    tabId: number,
     streamId: string,
     points: {
-        x1: number,
-        x2: number,
-        y1: number,
-        y2: number
+        x: number,
+        y: number,
+        w: number,
+        h: number
     }
+    imageData: Float32Array
 }
 
 chrome.runtime.onMessage.addListener(async function(request, sender, sendResponse) {
     console.log("Received message back from ", sender, request);
     const payload = request as BACKEND_RESPONSE;
-    navigator.webkitGetUserMedia({
-        audio: false,
-        // video: true
-        video: {
-            //@ts-ignore See examples https://github.com/GoogleChrome/chrome-extensions-samples/blob/main/functional-samples/sample.tabcapture-recorder/offscreen.js
-            mandatory: {
-                chromeMediaSource: 'tab',
-                chromeMediaSourceId: payload.streamId
-            }
-        }
-    }, (stream) => {
-        console.log(stream);
-    }, (error) => {
-        console.log(error);
-    });
+    
+    //Process OCR
+    const imageData = payload.imageData;
+    const vocab = await getVocab();
+    const result = ocr(imageData, vocab);
+    console.log("Final result is ", result);
+    
     sendResponse("thanks");
 });
 
 const startCapture = async (x1: number, x2: number, y1: number, y2: number) => {
-    console.log("Beginning new capture at ", [x1, x2, y1, y2]); 
-    chrome.runtime.sendMessage({x1, x2, y1, y2}, console.log);
-    // chrome.tabCapture.capture({video: true}, ((mediaStream: MediaStream)=> {
-    //     console.log(mediaStream);
-    // }));
-    // console.log("Response from sw: ", result);
+    const x = x1 < x2 ? x1 : x2;
+    const y =  y1 < y2 ? y1: y2;
+    const w = Math.abs(x2 - x1);
+    const h = Math.abs(y2 - y1);
+    const payload = {x,y,w,h};
+    console.log("Beginning new capture at ", [x, y, w, h]); 
+    const result = await chrome.runtime.sendMessage(payload);
+    console.log("Capture result is", result);
 }
 
 const addUiButtons = () => {

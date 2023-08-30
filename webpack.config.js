@@ -19,7 +19,7 @@ module.exports = () => {
             // Use copy plugin to copy *.wasm to output folder.
             patterns: [
                 { from: 'node_modules/onnxruntime-web/dist/*.wasm', to: '[name][ext]' },
-                { from: 'out/service-worker.js', to: '[name][ext]'}
+                { from: 'out/service-worker.js', to: '[name][ext]'},
                 { from: 'out/offscreen.js', to: '[name][ext]'}
             ]
         })],
