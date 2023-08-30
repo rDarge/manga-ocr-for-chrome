@@ -96,10 +96,45 @@ pluginDiv.setAttribute("id", pluginId)
 pluginDiv.setAttribute("stlye", "position:absolute; left: 0, right: 0, top: 0, bottom: 0");
 document.body.append(pluginDiv);
 
+//TODO extract interfaces
+interface BACKEND_RESPONSE {
+    streamId: string,
+    points: {
+        x1: number,
+        x2: number,
+        y1: number,
+        y2: number
+    }
+}
+
+chrome.runtime.onMessage.addListener(async function(request, sender, sendResponse) {
+    console.log("Received message back from ", sender, request);
+    const payload = request as BACKEND_RESPONSE;
+    navigator.webkitGetUserMedia({
+        audio: false,
+        // video: true
+        video: {
+            //@ts-ignore See examples https://github.com/GoogleChrome/chrome-extensions-samples/blob/main/functional-samples/sample.tabcapture-recorder/offscreen.js
+            mandatory: {
+                chromeMediaSource: 'tab',
+                chromeMediaSourceId: payload.streamId
+            }
+        }
+    }, (stream) => {
+        console.log(stream);
+    }, (error) => {
+        console.log(error);
+    });
+    sendResponse("thanks");
+});
+
 const startCapture = async (x1: number, x2: number, y1: number, y2: number) => {
     console.log("Beginning new capture at ", [x1, x2, y1, y2]); 
-    const result = await chrome.runtime.sendMessage({x1, x2, y1, y2});
-    console.log("Response from sw: ", result);
+    chrome.runtime.sendMessage({x1, x2, y1, y2}, console.log);
+    // chrome.tabCapture.capture({video: true}, ((mediaStream: MediaStream)=> {
+    //     console.log(mediaStream);
+    // }));
+    // console.log("Response from sw: ", result);
 }
 
 const addUiButtons = () => {

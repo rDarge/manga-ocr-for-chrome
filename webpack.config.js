@@ -20,6 +20,7 @@ module.exports = () => {
             patterns: [
                 { from: 'node_modules/onnxruntime-web/dist/*.wasm', to: '[name][ext]' },
                 { from: 'out/service-worker.js', to: '[name][ext]'}
+                { from: 'out/offscreen.js', to: '[name][ext]'}
             ]
         })],
         mode: 'development',
