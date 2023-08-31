@@ -133,11 +133,12 @@ const excludedColor = 'rgba(194, 163, 163, 0.4)';
 
 const pluginDiv = document.createElement('div');
 pluginDiv.setAttribute("id", pluginId)
-pluginDiv.setAttribute("style", "position:absolute; left: 0; right: 0; top: 0; bottom: 0");
+pluginDiv.setAttribute("style", "position:absolute; left: 0; right: 0; top: 0; bottom: 0; pointer-events: none");
 document.body.append(pluginDiv);
 
 const debugDiv = document.createElement('div');
-debugDiv.setAttribute("style", "position: absolute; left: 50%; top: 10%; border: 0.1rem solid;");
+const debugStyleShown = "position: absolute; left: 50%; top: 10%; border: 0.1rem solid; opacity: 75%; background-color: rgb(255, 255, 255)";
+debugDiv.setAttribute("style", debugStyleShown);
 debugDiv.innerText = "Debug contents go here";
 pluginDiv.append(debugDiv);
 
@@ -185,7 +186,7 @@ const startCapture = async (x1: number, x2: number, y1: number, y2: number) => {
 
 const addUiButtons = () => {
     const controlDiv = document.createElement('div')
-    controlDiv.setAttribute("style", "position:absolute; left: 50%; right:50%; top: 10px; width: 200px; border: 0.1rem solid; border-radius: 0.05rem; padding: 1rem;");
+    controlDiv.setAttribute("style", "pointer-events: auto; position:absolute; left: 50%; right:50%; top: 10px; width: 200px; border: 0.1rem solid; border-radius: 0.05rem; padding: 1rem;");
     controlDiv.innerText = "MangaOCR is loading..."
     pluginDiv.append(controlDiv);
     
@@ -199,11 +200,12 @@ const addUiButtons = () => {
 
         //Remove control div during screenshot
         controlDiv.remove();
+        debugDiv.setAttribute('style', 'display: none');
 
         //Insert Canvas overlay
         const canvas = document.createElement('canvas');
         pluginDiv.append(canvas);
-        canvas.setAttribute("style", "position: absolute; height: 100%; width: 100%; top: 0; left: 0")
+        canvas.setAttribute("style", "pointer-events: auto; position: absolute; height: 100%; width: 100%; top: 0; left: 0")
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
@@ -256,6 +258,7 @@ const addUiButtons = () => {
                 //Remove canvas and replace UI buttons
                 canvas.remove();
                 addUiButtons();
+                debugDiv.setAttribute('style', debugStyleShown);
             })
         })
         //Capture region
