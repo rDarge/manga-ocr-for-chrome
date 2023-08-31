@@ -1,134 +1,24 @@
-const ort = require('onnxruntime-web');
+import { OCRConfig, OCRModel } from "./ocr";
 
-const vocabURL = chrome.runtime.getURL('vocab.txt');
-const sampleURL = chrome.runtime.getURL('sample.csv');
-const encoderModelURL = chrome.runtime.getURL('encoder_model.onnx');
-const decoderModelURL = chrome.runtime.getURL('decoder_model.onnx');
-
-let cachedVocab = null;
-async function getVocab() {
-    if (cachedVocab) {
-        return cachedVocab;
-    } else {
-        //Get vocab
-        const vocabResource = await fetch(vocabURL);
-        if(!vocabResource.ok) {
-            console.error("Vocabulary is not okay", vocabResource);
-            return;
-        }
-        cachedVocab = (await vocabResource.text()).split("\r\n");
-        return cachedVocab;
-    }
-}
-
-let cachedEncoder = null;
-async function getEncoder() {
-    if (cachedEncoder) {
-        return cachedEncoder;
-    }
-
-    const encoderRequest = await fetch (encoderModelURL);
-    const encoderModel = await encoderRequest.arrayBuffer();
-    cachedEncoder = await ort.InferenceSession.create(encoderModel);
-    return cachedEncoder;
-}
-
-let cachedDecoder = null;
-async function getDecoder() {
-    if (cachedDecoder) {
-        return cachedDecoder;
-    }
-
-    const decoderRequest = await fetch (decoderModelURL);
-    const decoderModel = await decoderRequest.arrayBuffer();
-    cachedDecoder = await ort.InferenceSession.create(decoderModel);
-    return cachedDecoder;
-}
-
-const softmax = (logits: any) => {
-    //SOFTMAX RESULTS
-    const softmax = [];
-    let currentIndex = 0
-    let currentValue = logits[0];
-    for(let i = 1; i < logits.length; i += 1) {
-    if(i % 6144 == 0) {
-        softmax.push(currentIndex % 6144);
-        currentIndex = i;
-        currentValue = logits[i];
-    } else if(currentValue < logits[i]) {
-        currentIndex = i;
-        currentValue = logits[i];
-    }
-    }
-    softmax.push(currentIndex % 6144);
-    return softmax;
-}
-
-const runDecoder = async (decoder: any, inputFeed: any, vocab: string[]) => {
-    const results = await decoder.run(inputFeed);
-    const newResults = [2n,...softmax(results.logits.data).map(v => BigInt(v))];
-    const nextToken = newResults[newResults.length-1];
-
-    if(nextToken !== 3n && newResults.length < 300) {
-        const newIds = new BigInt64Array(newResults);
-        const newInput = {
-            input_ids: new ort.Tensor("int64", newIds, [1,newResults.length]),
-            encoder_hidden_states: inputFeed.encoder_hidden_states
-        }
-        console.log("newResults are" , newResults);
-        return await runDecoder(decoder, newInput, vocab);
-    } else {
-        const output = newResults.filter(idx => idx > 14).map(idx => vocab[Number(idx)]).join('');
-        console.log(output);
-        return output;
-    }
-}
-
-async function doExampleOCR() {
-    // Get vocab
-    const vocab = await getVocab();
-
-    // Get sample image
-    const sampleResource = await fetch(sampleURL);
-    if(!sampleResource.ok) {
-        console.error("Sample image is not okay", sampleResource);
-        return;
-    }
-    const input = await sampleResource.text();
-    const array = new Float32Array(input.split(',').map(v => parseFloat(v)));
-
-    // Process sample image
-    const sample_result = await ocr(array, vocab);
-    return sample_result;
-}
-
-async function ocr(array: Float32Array, vocab: string[]) : Promise<string> {
-    
-    //Run encoder
-    const encoder = await getEncoder();
-    const input_data = new ort.Tensor("float32", array, [1,3,224,224]);
-    const feeds = { pixel_values: input_data}
-    const encoder_results = await encoder.run(feeds);
-    console.log("encoder complete...  running decoder")
-
-    //Run decoder
-    const decoder = await getDecoder();
-    const inputIds = new ort.Tensor("int64", new BigInt64Array([2n]), [1,1]);
-    const nextInput = {input_ids:inputIds, encoder_hidden_states: encoder_results.last_hidden_state};
-
-    return runDecoder(decoder, nextInput, vocab);
-}
-
-//Delete any pre-existing control windows...
+//Delete any pre-existing control elements...
 const pluginId = "translation-control-window";
 const existingControl = document.getElementById(pluginId);
 if(existingControl) {
     existingControl.remove();
 }
 
+//Set up OCR model
+const config: OCRConfig = {
+    vocabURL: chrome.runtime.getURL('vocab.txt'),
+    encoderModelURL: chrome.runtime.getURL('encoder_model.onnx'),
+    decoderModelURL: chrome.runtime.getURL('decoder_model.onnx'),
+    startupSampleURL: chrome.runtime.getURL('sample.csv'),
+    startupSampleExpectation: "いつも何かに追われていて"
+};
+const ocr = new OCRModel(config);
+
 //Constants
 const canvasColor = 'rgba(163, 163, 194, 0.4)';
-const clearColor = 'rgba(255, 255, 255, 0.0)';
 const excludedColor = 'rgba(194, 163, 163, 0.4)';
 
 const pluginDiv = document.createElement('div');
@@ -142,16 +32,17 @@ debugDiv.setAttribute("style", debugStyleShown);
 debugDiv.innerText = "Debug contents go here";
 pluginDiv.append(debugDiv);
 
+//When a request has completed, it will route here.
 chrome.runtime.onMessage.addListener(async function(request, sender, sendResponse) {
     console.log("Received message back from ", sender, request);
 
     const response = request as Message;
     if(response.type === 'OCRComplete') {
+
         //Process OCR
         const payload = response.payload as BackendResponse;
         const imageData = new Float32Array(payload.imageData);
-        const vocab = await getVocab();
-        const result = await ocr(imageData, vocab);
+        const result = await ocr.ocr(imageData);
         console.log("Final result is ", result);
 
         //Debugging image translation issues
@@ -163,7 +54,6 @@ chrome.runtime.onMessage.addListener(async function(request, sender, sendRespons
         const debugImage = document.createElement('img');
         debugImage.src = response.debug.cropped224URL;
         debugDiv.append(debugImage);
-        
         
         sendResponse("thanks");
     }
@@ -187,15 +77,19 @@ const startCapture = async (x1: number, x2: number, y1: number, y2: number) => {
 const addUiButtons = () => {
     const controlDiv = document.createElement('div')
     controlDiv.setAttribute("style", "pointer-events: auto; position:absolute; left: 50%; right:50%; top: 10px; width: 200px; border: 0.1rem solid; border-radius: 0.05rem; padding: 1rem;");
-    controlDiv.innerText = "MangaOCR is loading..."
+    controlDiv.innerText = "OCR Model is loading..."
     pluginDiv.append(controlDiv);
-    
     
     //Clear contents
     controlDiv.innerHTML = '';
+
     //Add button to initiate OCR capture and processing
     const startOCRButton = document.createElement('button');
     startOCRButton.innerText = "Start Capture";
+
+    //TODO add pop-up elements containing cached translations anchored to the top right of the original capture area
+
+    //TODO move to it's own function... 
     startOCRButton.onclick = ((ev: MouseEvent) => {
 
         //Remove control div during screenshot
@@ -208,6 +102,13 @@ const addUiButtons = () => {
         canvas.setAttribute("style", "pointer-events: auto; position: absolute; height: 100%; width: 100%; top: 0; left: 0")
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
+        const doneWithCanvas = () => {
+            //Remove canvas and replace UI buttons
+            canvas.remove();
+            addUiButtons();
+            //TODO just make debug div opaque and add dismiss button
+            debugDiv.setAttribute('style', debugStyleShown);
+        }
 
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = canvasColor;
@@ -217,6 +118,10 @@ const addUiButtons = () => {
 
         //Watch for mouseclicks
         canvas.onmousedown = ((firstClick: MouseEvent) => {
+            if(firstClick.button !== 0) {
+                return;
+            }
+
             const firstRect = canvas.getBoundingClientRect();
             x1 = firstClick.clientX - firstRect.left; 
             y1 = firstClick.clientY - firstRect.top;
@@ -248,30 +153,31 @@ const addUiButtons = () => {
             }
 
             //Finalize selection when they mouseup
-            canvas.onmouseup = ((lastClick: MouseEvent) => {
+            canvas.onmouseup = (lastClick: MouseEvent) => {
+                if(firstClick.button !== 0) {
+                    return;
+                }
+
                 const lastRect = canvas.getBoundingClientRect();
                 x2 = lastClick.clientX - lastRect.left;
                 y2 = lastClick.clientY - lastRect.top;
 
                 startCapture(x1, x2, y1, y2);
                 
-                //Remove canvas and replace UI buttons
-                canvas.remove();
-                addUiButtons();
-                debugDiv.setAttribute('style', debugStyleShown);
-            })
+                doneWithCanvas();
+            };
+
+            //Or let them cancel with keydown
+            canvas.onkeydown = (ev: KeyboardEvent) => {
+                if(ev.key === 'Escape') {
+                    doneWithCanvas();
+                }
+            }; 
         })
-        //Capture region
     });
     controlDiv.append(startOCRButton);
 }
 
+//Final initialization; prepare OCR engine and add UI buttons
+ocr.init();
 addUiButtons();
-
-// doExampleOCR().then((ocr) => {
-//     addUiButtons();
-// }, (error) => {
-//     console.log(error);
-// });
-
-
