@@ -129,6 +129,7 @@ if(existingControl) {
 //Constants
 const canvasColor = 'rgba(163, 163, 194, 0.4)';
 const clearColor = 'rgba(255, 255, 255, 0.0)';
+const excludedColor = 'rgba(194, 163, 163, 0.4)';
 
 const pluginDiv = document.createElement('div');
 pluginDiv.setAttribute("id", pluginId)
@@ -159,7 +160,7 @@ chrome.runtime.onMessage.addListener(async function(request, sender, sendRespons
         debugDiv.append(ocrResult);
 
         const debugImage = document.createElement('img');
-        debugImage.src = response.debug.canvasRedrawnURL;
+        debugImage.src = response.debug.cropped224URL;
         debugDiv.append(debugImage);
         
         
@@ -223,12 +224,25 @@ const addUiButtons = () => {
                 const moveRect = canvas.getBoundingClientRect();
                 x2 = move.clientX - moveRect.left; 
                 y2 = move.clientY - moveRect.top;
-                
-                //Update canvas
+
+                //Update canvas overlay to show target selection
                 ctx.clearRect(0,0, canvas.width, canvas.height);
                 ctx.fillStyle = canvasColor;
                 ctx.fillRect(0,0, canvas.width, canvas.height);
-                ctx.clearRect(x1 < x2 ? x1 : x2, y1 < y2 ? y1: y2, Math.abs(x2 - x1), Math.abs(y2 - y1));
+                const x = x1 < x2 ? x1 : x2;
+                const y = y1 < y2 ? y1 : y2;
+                const w = Math.abs(x2 - x1);
+                const h = Math.abs(y2 - y1);
+                ctx.fillStyle = excludedColor;
+                ctx.fillRect(x, y, w, h);
+                if(w > 10 && h > 10) {
+                    //Window probably too small for meaningful OCR otherwise
+                    //a margin of about 12% will be cut off from the sample
+                    const margin_w = w * .0625;
+                    const margin_h = h * .0625;
+                    ctx.clearRect(x + margin_w, y + margin_h, w - 2*margin_w, h - 2*margin_h);    
+                }
+                
             }
 
             //Finalize selection when they mouseup

@@ -34,6 +34,7 @@ async function takeCapture(payload: CaptureRequest) {
 
     //Calculate difference between viewport and imagebitmap, 
     //This will be used to properly offset the crop window
+    //TODO calculate offsets precisely using canvas... the top/bottom bars may have different heights
     const diff_w = imageBitmap.width - points.viewport_w;
     const diff_h = imageBitmap.height - points.viewport_h;
     const offset_x = points.x + diff_w / 2;
