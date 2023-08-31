@@ -75,6 +75,7 @@ const runDecoder = async (decoder: any, inputFeed: any, vocab: string[]) => {
             input_ids: new ort.Tensor("int64", newIds, [1,newResults.length]),
             encoder_hidden_states: inputFeed.encoder_hidden_states
         }
+        console.log("newResults are" , newResults);
         return await runDecoder(decoder, newInput, vocab);
     } else {
         const output = newResults.filter(idx => idx > 14).map(idx => vocab[Number(idx)]).join('');
@@ -101,7 +102,7 @@ async function doExampleOCR() {
     return sample_result;
 }
 
-async function ocr(array: Float32Array, vocab: string[]) {
+async function ocr(array: Float32Array, vocab: string[]) : Promise<string> {
     
     //Run encoder
     const encoder = await getEncoder();
@@ -131,44 +132,54 @@ const clearColor = 'rgba(255, 255, 255, 0.0)';
 
 const pluginDiv = document.createElement('div');
 pluginDiv.setAttribute("id", pluginId)
-pluginDiv.setAttribute("stlye", "position:absolute; left: 0, right: 0, top: 0, bottom: 0");
+pluginDiv.setAttribute("style", "position:absolute; left: 0; right: 0; top: 0; bottom: 0");
 document.body.append(pluginDiv);
 
-//TODO extract interfaces
-interface BACKEND_RESPONSE {
-    tabId: number,
-    streamId: string,
-    points: {
-        x: number,
-        y: number,
-        w: number,
-        h: number
-    }
-    imageData: Float32Array
-}
+const debugDiv = document.createElement('div');
+debugDiv.setAttribute("style", "position: absolute; left: 50%; top: 10%; border: 0.1rem solid;");
+debugDiv.innerText = "Debug contents go here";
+pluginDiv.append(debugDiv);
 
 chrome.runtime.onMessage.addListener(async function(request, sender, sendResponse) {
     console.log("Received message back from ", sender, request);
-    const payload = request as BACKEND_RESPONSE;
-    
-    //Process OCR
-    const imageData = payload.imageData;
-    const vocab = await getVocab();
-    const result = ocr(imageData, vocab);
-    console.log("Final result is ", result);
-    
-    sendResponse("thanks");
+
+    const response = request as Message;
+    if(response.type === 'OCRComplete') {
+        //Process OCR
+        const payload = response.payload as BackendResponse;
+        const imageData = new Float32Array(payload.imageData);
+        const vocab = await getVocab();
+        const result = await ocr(imageData, vocab);
+        console.log("Final result is ", result);
+
+        //Debugging image translation issues
+        debugDiv.innerHTML = "";
+        const ocrResult = document.createElement('p');
+        ocrResult.innerText = result;
+        debugDiv.append(ocrResult);
+
+        const debugImage = document.createElement('img');
+        debugImage.src = response.debug.canvasRedrawnURL;
+        debugDiv.append(debugImage);
+        
+        
+        sendResponse("thanks");
+    }
 });
 
 const startCapture = async (x1: number, x2: number, y1: number, y2: number) => {
+    const viewport_w = window.innerWidth;
+    const viewport_h = window.innerHeight;
     const x = x1 < x2 ? x1 : x2;
-    const y =  y1 < y2 ? y1: y2;
+    const y = y1 < y2 ? y1: y2;
     const w = Math.abs(x2 - x1);
     const h = Math.abs(y2 - y1);
-    const payload = {x,y,w,h};
-    console.log("Beginning new capture at ", [x, y, w, h]); 
-    const result = await chrome.runtime.sendMessage(payload);
-    console.log("Capture result is", result);
+    const message: Message = {
+        type: 'OCRStart',
+        payload: {x,y,w,h,viewport_w,viewport_h}
+    }
+    console.log("Beginning new capture", message); 
+    chrome.runtime.sendMessage(message);
 }
 
 const addUiButtons = () => {
@@ -238,10 +249,12 @@ const addUiButtons = () => {
     controlDiv.append(startOCRButton);
 }
 
-doExampleOCR().then((ocr) => {
-    addUiButtons();
-}, (error) => {
-    console.log(error);
-});
+addUiButtons();
+
+// doExampleOCR().then((ocr) => {
+//     addUiButtons();
+// }, (error) => {
+//     console.log(error);
+// });
 
 
