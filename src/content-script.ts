@@ -1,12 +1,5 @@
 import { OCRConfig, OCRModel } from "./ocr";
 
-//Delete any pre-existing control elements...
-const pluginId = "translation-control-window";
-const existingControl = document.getElementById(pluginId);
-if(existingControl) {
-    existingControl.remove();
-}
-
 //Set up OCR model
 const config: OCRConfig = {
     vocabURL: chrome.runtime.getURL('vocab.txt'),
@@ -38,8 +31,14 @@ chrome.runtime.onMessage.addListener(async function(request, sender, sendRespons
         enableOCRButton();
 
         //Debugging image translation issues
-        debugDiv.setAttribute('style', debugStyleShown);
+        debugDiv.style.display = 'inline-block';
         debugDiv.innerHTML = "";
+
+        const hideDebugPanel = document.createElement('button');
+        hideDebugPanel.onclick = (() => debugDiv.style.display = 'none');
+        hideDebugPanel.setAttribute('style', "pointer-events: auto; float:right");
+        hideDebugPanel.innerText = "X"
+        debugDiv.append(hideDebugPanel);
 
         const debugTitle = document.createElement('p');
         debugTitle.innerText = "Debug Window";
@@ -48,12 +47,6 @@ chrome.runtime.onMessage.addListener(async function(request, sender, sendRespons
         const debugImage = document.createElement('img');
         debugImage.src = response.debug.cropped224URL;
         debugDiv.append(debugImage);
-        
-        const hideDebugPanel = document.createElement('button');
-        hideDebugPanel.onclick = (() => debugDiv.setAttribute('style', 'display: none'));
-        hideDebugPanel.setAttribute('style', "pointer-events: auto; float:right");
-        hideDebugPanel.innerText = "X"
-        debugDiv.append(hideDebugPanel);
         
         sendResponse("thanks");
     }
@@ -88,8 +81,8 @@ const startCapture = async (x1: number, x2: number, y1: number, y2: number) => {
 //Called to create a new area for OCR
 const newCapture = (ev: MouseEvent) => {
     //Remove control and debug elements during screenshot
-    controlDiv.setAttribute('style', 'display: none');
-    debugDiv.setAttribute('style', 'display: none');
+    controlDiv.style.display = 'none';
+    debugDiv.style.display = 'none';
 
     //Insert Canvas overlay
     const canvas = document.createElement('canvas');
@@ -103,7 +96,7 @@ const newCapture = (ev: MouseEvent) => {
         canvas.remove();
         setTimeout(() => {
             //Introduce delay so control element does not interfere with asynchronous screen capture operation
-            controlDiv.setAttribute("style", controlStyle);
+            controlDiv.style.display = 'inline-block';
             disableOCRButton("Image is processing...");
         }, 50);
     }
@@ -193,19 +186,38 @@ const newCapture = (ev: MouseEvent) => {
 
 
 const pluginDiv = document.createElement('div');
-pluginDiv.setAttribute("id", pluginId)
 pluginDiv.setAttribute("style", "position:absolute; left: 0; right: 0; top: 0; bottom: 0; pointer-events: none");
 document.body.append(pluginDiv);
 
 const debugDiv = document.createElement('div');
-const debugStyleShown = "position: absolute; left: 50%; top: 10%; border: 0.1rem solid; opacity: 75%; background-color: rgb(255, 255, 255)";
-debugDiv.setAttribute("style", "display:none");
+debugDiv.setAttribute("style", "display:none; position: absolute; left: 50%; top: 10%; border: 0.1rem solid; opacity: 75%; background-color: rgb(255, 255, 255)");
 pluginDiv.append(debugDiv);
 
 const controlDiv = document.createElement('div');
-const controlStyle = "pointer-events: auto; position:absolute; left: 50%; right:50%; top: 10px; width: 200px; border: 0.1rem solid; border-radius: 0.05rem; padding: 1rem;";
-controlDiv.setAttribute("style", controlStyle);
+controlDiv.setAttribute("style", "pointer-events: auto; position:absolute; left: 50%; right:50%; top: 10px; width: 200px; border: 0.1rem solid; border-radius: 0.05rem; padding: 1rem;");
 pluginDiv.append(controlDiv);
+
+controlDiv.addEventListener('mousedown', (ev: MouseEvent) => {
+    if(ev.button !== 0) {
+        return;
+    }
+
+    const firstRect = controlDiv.getBoundingClientRect();
+    const x_inset = ev.clientX - firstRect.left; 
+    const y_inset = ev.clientY - firstRect.top;
+
+    const updatePosition = (mv: MouseEvent) => {
+        const x = mv.clientX - x_inset; 
+        const y = mv.clientY - y_inset;
+        controlDiv.style.left = `${x}px`;
+        controlDiv.style.top = `${y}px`;
+    };
+
+    document.addEventListener('mousemove', updatePosition);
+    document.addEventListener('mouseup', (up: MouseEvent) => {
+        document.removeEventListener('mousemove', updatePosition);
+    }, {once: true});
+});
 
 const startOCRButton = document.createElement('button');
 startOCRButton.onclick = newCapture
@@ -222,6 +234,7 @@ const disableOCRButton = (message: string) => {
 disableOCRButton("OCR Model loading...");
 
 const ocrResults = document.createElement('p');
+ocrResults.addEventListener("mousedown", (e: MouseEvent) => {e.stopPropagation()});
 controlDiv.append(ocrResults);
 
 //Final initialization; prepare OCR engine and add UI buttons
