@@ -20,7 +20,8 @@ export class OCRModel {
     private vocabLength: number = 6144; 
     private inputFormat: number[] = [1,3,224,224];
     private decoderInitSize: number[] = [1,1];
-    private maxReturnLength: number = 300;
+    private maxReturnLength: number = 100; //300;
+    //Reduced max return length; there are certain situations where it will be stuck parsing a non-end character indefinitely
 
     constructor(config: OCRConfig){
         this.config = config;  
@@ -45,7 +46,7 @@ export class OCRModel {
         } else {
             console.log("Startup example skipped per configuration. Model ready!")
         }
-        
+        return true;        
     }
 
     private async getVocab(): Promise<string[]> {
