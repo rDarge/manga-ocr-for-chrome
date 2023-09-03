@@ -15,6 +15,7 @@ export class OCRModel {
     private vocab: string[];
     private encoder: any;
     private decoder: any;
+    private initialized: boolean = false;
 
     //TODO parameterize the following to be supplied/inferred from model and validated on init
     private vocabLength: number = 6144; 
@@ -28,6 +29,13 @@ export class OCRModel {
     }
 
     public async init() {
+        if(this.initialized) {
+            return;
+        }
+
+        //Set ORT threads to 1, since the csp permissions are borked in workers currently: 
+        ort.env.wasm.numThreads = 1;
+        
         console.log("Loading OCR model...");
         const vocab = await this.getVocab();
         console.log(`${vocab.length} vocabulary loaded`);
@@ -46,6 +54,7 @@ export class OCRModel {
         } else {
             console.log("Startup example skipped per configuration. Model ready!")
         }
+        this.initialized = true;
         return true;        
     }
 

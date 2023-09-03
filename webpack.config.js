@@ -7,10 +7,10 @@ const CopyPlugin = require("copy-webpack-plugin");
 module.exports = () => {
     return {
         target: ['web'],
-        entry: path.resolve(__dirname, 'out/content-script.js'),
+        entry: path.resolve(__dirname, 'out/offscreen.js'),
         output: {
             path: path.resolve(__dirname, 'dist'),
-            filename: 'content-script.js',
+            filename: 'offscreen.js',
             library: {
                 type: 'umd'
             }
@@ -20,7 +20,7 @@ module.exports = () => {
             patterns: [
                 { from: 'node_modules/onnxruntime-web/dist/*.wasm', to: '[name][ext]' },
                 { from: 'out/service-worker.js', to: '[name][ext]'},
-                { from: 'out/offscreen.js', to: '[name][ext]'}
+                { from: 'out/content-script.js', to: '[name][ext]'}
             ]
         })],
         mode: 'development',

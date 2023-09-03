@@ -1,15 +1,3 @@
-import { OCRConfig, OCRModel } from "./ocr";
-
-//Set up OCR model
-const config: OCRConfig = {
-    vocabURL: chrome.runtime.getURL('vocab.txt'),
-    encoderModelURL: chrome.runtime.getURL('encoder_model.onnx'),
-    decoderModelURL: chrome.runtime.getURL('decoder_model.onnx'),
-    startupSampleURL: chrome.runtime.getURL('sample.csv'),
-    startupSampleExpectation: "いつも何かに追われていて"
-};
-const ocr = new OCRModel(config);
-
 //Constants
 const canvasColor = 'rgba(163, 163, 194, 0.4)';
 const excludedColor = 'rgba(194, 163, 163, 0.4)';
@@ -24,8 +12,7 @@ chrome.runtime.onMessage.addListener(async function(request, sender, sendRespons
 
         //Process OCR
         const payload = response.payload as BackendResponse;
-        const imageData = new Float32Array(payload.imageData);
-        const result = await ocr.ocr(imageData);
+        const result = payload.text;
         console.log("Final result is ", result);
         ocrResults.innerText = result;
         enableOCRButton();
@@ -194,7 +181,7 @@ debugDiv.setAttribute("style", "display:none; position: absolute; left: 50%; top
 pluginDiv.append(debugDiv);
 
 const controlDiv = document.createElement('div');
-controlDiv.setAttribute("style", "pointer-events: auto; position:absolute; left: 50%; right:50%; top: 10px; width: 200px; border: 0.1rem solid; border-radius: 0.05rem; padding: 1rem;");
+controlDiv.setAttribute("style", "pointer-events: auto; position:absolute; left: 50%; right:50%; top: 10px; width: 200px; border: 0.1rem solid; border-radius: 0.05rem; padding: 1rem; background-color: white");
 pluginDiv.append(controlDiv);
 
 controlDiv.addEventListener('mousedown', (ev: MouseEvent) => {
@@ -238,11 +225,4 @@ ocrResults.addEventListener("mousedown", (e: MouseEvent) => {e.stopPropagation()
 controlDiv.append(ocrResults);
 
 //Final initialization; prepare OCR engine and add UI buttons
-ocr.init().then((completed) => {
-    if(completed){
-        enableOCRButton();
-    }
-}).catch(reason => {
-    console.error(reason);
-    disableOCRButton("Model failed to load");
-}) 
+enableOCRButton();

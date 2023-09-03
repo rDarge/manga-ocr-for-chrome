@@ -1,1 +1,1 @@
-npm run clean; npm run build; npm run dist; npx webpack; .\update-onnx.ps1
+npm run clean; npm run build; npm run dist; npx webpack

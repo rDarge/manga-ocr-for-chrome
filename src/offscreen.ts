@@ -1,3 +1,16 @@
+import { OCRConfig, OCRModel } from "./ocr";
+
+//Set up OCR model
+const config: OCRConfig = {
+    vocabURL: chrome.runtime.getURL('vocab.txt'),
+    encoderModelURL: chrome.runtime.getURL('encoder_model.onnx'),
+    decoderModelURL: chrome.runtime.getURL('decoder_model.onnx'),
+    startupSampleURL: chrome.runtime.getURL('sample.csv'),
+    startupSampleExpectation: "いつも何かに追われていて",
+    skipStartupSample: true
+};
+const ocr = new OCRModel(config);
+
 chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     console.log("Received message ", request, sender);
     const message = request as Message;
@@ -6,7 +19,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
         const result = await takeCapture(payload);
         const response: Message = {
             type: 'OCRComplete',
-            payload: { ...payload, imageData: result.preprocessed },
+            payload: { ...payload, text: result.text },
             debug: result.debug
         };
         console.log("Response is", response);
@@ -53,9 +66,6 @@ async function takeCapture(payload: CaptureRequest) {
     ctx.fillRect(offset_x, offset_y, points.w, points.h);
     const canvasRedrawnURL = canvas.toDataURL();
 
-    
-    // const croppedImage = ctx.getImageData(points.x, points.y, points.w, points.h);
-
     // Draw cropped image scaled back onto canvas
     canvas.width = 256;
     canvas.height = 256;
@@ -90,12 +100,14 @@ async function takeCapture(payload: CaptureRequest) {
     }
     const normalizedData = [...r, ...g, ...b];
 
+    // const payload = response.payload as BackendResponse;
+    const imageData = new Float32Array(normalizedData);
+    const result = await ocr.ocr(imageData);
+
     return {
-        preprocessed: normalizedData, 
+        text: result,
         debug: { cropped224URL, cropped256URL, canvasRedrawnURL}
     };
-    // console.log("The cropped data is ", tensorData);
-
-
-    // chrome.tabs.sendMessage(payload.tabId, );
 }
+
+ocr.init();

@@ -27,5 +27,5 @@ interface BackendResponse {
     tabId: number,
     streamId: string,
     points: CropArea
-    imageData: number[]
+    text: string
 }

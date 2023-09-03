@@ -15,17 +15,8 @@ Note that the correct task for this model is `vision2seq-lm`, as specified below
 
 This should provide a pair of files, `encoder-model.onnx` and `decoder-model.onnx`, which you should then put in the `./res` folder.
 
-## Modifications to onnx-runtime-web
+## Considerations regarding onnx-runtime-web
 
-Onnx-web resolves internal dependencies (in this case wasm files) from the current domain root. As this code is injected in the context of your tab, it fails to find some of the dependencies it needs to pull from the extension context. 
-
-As a short-term fix, I'm updating the bundled content-script.js file to run chrome.runtime.getURL for each fetch the correct absolute path rather than letting the auto-resolution lead it astray. There might be a better way to do this otherwise though!
-
-Within content-script.js:
-
-Replace `fetch\(([a-zA-z])(,|\))`
-With `fetch(chrome.runtime.getURL($1)$2`
-
-I am doing this currently via the `.\update-onnx.ps1` script
+Currently this model is running via wasm; by default (but possibly according to hardware settings) it will attempt to spawn several worker threads; the csp is different in these worker threads and as a result they fail to load the .wasm assemblies, so we've set the total number of threads to 1 in the `ocr.ts` class.
 
 Thank you for your patience!
