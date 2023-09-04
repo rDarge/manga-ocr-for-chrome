@@ -1,4 +1,10 @@
-dist/
+# Build folders
 node_modules/
+dist/
 out/
+
+# Personalized IDE behavior
+.vscode/
+
+# Too big for git
 res/*.onnx

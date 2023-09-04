@@ -19,12 +19,12 @@ chrome.runtime.onMessage.addListener(async function(request, sender, sendRespons
         enableOCRButton();
 
         //Debugging image translation issues
-        debugDiv.style.display = 'inline-block';
+        debugDiv.classList.remove("hidden");
         debugDiv.innerHTML = "";
 
         const hideDebugPanel = document.createElement('button');
-        hideDebugPanel.onclick = (() => debugDiv.style.display = 'none');
-        hideDebugPanel.setAttribute('style', "pointer-events: auto; float:right");
+        hideDebugPanel.onclick = (() => debugDiv.classList.add("hidden"));
+        hideDebugPanel.classList.add("close-button");
         hideDebugPanel.innerText = "X"
         debugDiv.append(hideDebugPanel);
 
@@ -69,13 +69,13 @@ const startCapture = async (x1: number, x2: number, y1: number, y2: number) => {
 //Called to create a new area for OCR
 const newCapture = (ev: MouseEvent) => {
     //Remove control and debug elements during screenshot
-    controlDiv.style.display = 'none';
-    debugDiv.style.display = 'none';
+    controlDiv.classList.add("hidden");
+    debugDiv.classList.add("hidden");
 
     //Insert Canvas overlay
     const canvas = document.createElement('canvas');
     pluginDiv.append(canvas);
-    canvas.setAttribute("style", "pointer-events: auto; position: fixed; height: 100%; width: 100%; top: 0; left: 0")
+    canvas.classList.add("selection-canvas");
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
@@ -84,7 +84,7 @@ const newCapture = (ev: MouseEvent) => {
         canvas.remove();
         setTimeout(() => {
             //Introduce delay so control element does not interfere with asynchronous screen capture operation
-            controlDiv.style.display = 'inline-block';
+            controlDiv.classList.remove("hidden");
             disableOCRButton("Image is processing...");
         }, 50);
     }
@@ -213,16 +213,16 @@ const movableElement = (element: HTMLElement) => {
 
 
 const pluginDiv = document.createElement('div');
-pluginDiv.setAttribute("style", "position:fixed; left: 0; right: 0; top: 0; bottom: 0; pointer-events: none; z-index: 1");
+pluginDiv.classList.add("ocr-extension-root");
 document.body.append(pluginDiv);
 
 const debugDiv = document.createElement('div');
-debugDiv.setAttribute("style", "pointer-events: auto; display:none; position: fixed; left: 50%; top: 10%; border: 0.1rem solid; opacity: 75%; background-color: rgb(255, 255, 255)");
+debugDiv.classList.add("debug-window", "hidden");
 debugDiv.addEventListener('mousedown', movableElement(debugDiv));
 pluginDiv.append(debugDiv);
 
 const controlDiv = document.createElement('div');
-controlDiv.setAttribute("style", "pointer-events: auto; position:fixed; left: 50%; right:50%; top: 10px; width: 200px; border: 0.1rem solid; border-radius: 0.05rem; padding: 1rem; background-color: white");
+controlDiv.classList.add("control-window");
 controlDiv.addEventListener('mousedown', movableElement(controlDiv));
 pluginDiv.append(controlDiv);
 

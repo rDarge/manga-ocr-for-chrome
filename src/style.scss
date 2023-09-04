@@ -1,0 +1,54 @@
+.ocr-extension-root {
+    position:fixed; 
+    left: 0; 
+    right: 0; 
+    top: 0; 
+    bottom: 0; 
+    pointer-events: none; 
+    z-index: 1;
+
+    .control-window {
+        pointer-events: auto; 
+        position:fixed; 
+        left: 50%; 
+        right:50%; 
+        top: 10px; 
+        width: 200px; 
+        border: 0.1rem solid; 
+        border-radius: 0.05rem; 
+        padding: 1rem; 
+        background-color: white
+    }
+
+    .debug-window {
+        pointer-events: auto; 
+        position: fixed; 
+        left: 50%; 
+        top: 10%; 
+        border: 0.1rem solid; 
+        opacity: 75%; 
+        background-color: white;
+    };
+
+    .selection-canvas {
+        pointer-events: auto;
+        position: fixed;
+        height: 100%;
+        width: 100%;
+        top: 0;
+        left: 0;
+    }
+
+    .close-button {
+        pointer-events: auto; 
+        float: right;
+    }
+    
+    .hidden {
+        display: none;
+    }
+}
+
+
+
+    

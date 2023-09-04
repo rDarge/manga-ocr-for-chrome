@@ -5,6 +5,10 @@ chrome.action.onClicked.addListener(function (tab) {
             target: { tabId },
             files: ['content-script.js']
         });
+        chrome.scripting.insertCSS( {
+            target: { tabId },
+            files: ['style.css']
+        });
     }
 });
 
