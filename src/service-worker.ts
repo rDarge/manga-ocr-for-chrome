@@ -20,7 +20,11 @@ chrome.runtime.onMessage.addListener(
         const message = request as Message;
         if(message.type === 'OCRStart') {
             const imagePoints = message.payload as CropArea;
-            let recording = false;
+
+            const image = await chrome.tabs.captureVisibleTab(sender.tab.windowId, {
+                format: 'png'
+            });
+            console.log("Capture of tab is: ", image);
     
             //@ts-ignore types out of date: https://github.com/GoogleChrome/chrome-extensions-samples/blob/main/functional-samples/sample.tabcapture-recorder/service-worker.js
             const existingContexts = await chrome.runtime.getContexts({});
@@ -31,28 +35,14 @@ chrome.runtime.onMessage.addListener(
                 await chrome.offscreen.createDocument({
                     url: 'offscreen.html',
                     reasons: [chrome.offscreen.Reason.USER_MEDIA],
-                    justification: 'Generating thumbnail of user selected region for OCR'
+                    justification: 'Background processing of OCR requests'
                 })
-            } else {
-                recording = offscreenDocument.documentUrl.endsWith('#recording');
             }
-    
-            if (recording) {
-                chrome.runtime.sendMessage({
-                    type: 'stop-recording',
-                    target: 'offscreen'
-                });
-            }
-    
-            //@ts-ignore types are outdated again
-            const streamId: string = await chrome.tabCapture.getMediaStreamId({
-                targetTabId: sender.tab.id
-            });
     
             const request: Message = {
                 type: 'ProcessBackend',
                 payload: {
-                    streamId: streamId, 
+                    image: image, 
                     tabId: sender.tab.id, 
                     points: imagePoints
                 }
@@ -68,33 +58,5 @@ chrome.runtime.onMessage.addListener(
             console.log("Forwarding message to original tab for final processing");
             chrome.tabs.sendMessage(tabId, message);
         }
-        
-        
-
-        // none of this shit fucking works
-        // TODO reference og google docs, this declaration seems stale
-        // chrome.tabCapture.getMediaStreamId({
-        //     targetTabId: sender.tab.id
-        // // }, )
-        // // chrome.tabCapture.capture({
-        // //     video:true,
-        // //     videoConstraints: {
-        // //         mandatory: {
-        // //             chromeMediaSource: "tab",
-        // //             chromeMediaSoureId: sender.tab.id
-        // //         }
-        // //     }
-        // }, async (streamId: string) => {
-        //     // const track = mediaStream.getVideoTracks()[0];
-        //     // const imageCapture = new ImageCapture(track);
-        //     // const imageBitmap = await imageCapture.takePhoto();
-        //     // console.log(imageBitmap);
-        //     console.log(streamId);
-        //     const payload = {streamId: streamId, points: imagePoints};
-        //     chrome.tabs.sendMessage(sender.tab.id, payload, (response) => {
-        //         console.log("Got response: ", response);
-        //     })
-        // });
-        // sendResponse({ response: "Good job" });
     }
 )

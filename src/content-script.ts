@@ -44,6 +44,7 @@ chrome.runtime.onMessage.addListener(async function(request, sender, sendRespons
 const startCapture = async (x1: number, x2: number, y1: number, y2: number) => {
     const viewport_w = window.innerWidth;
     const viewport_h = window.innerHeight;
+    const pixel_ratio = window.devicePixelRatio;
     const x = x1 < x2 ? x1 : x2;
     const y = y1 < y2 ? y1: y2;
     const w = Math.abs(x2 - x1);
@@ -59,7 +60,8 @@ const startCapture = async (x1: number, x2: number, y1: number, y2: number) => {
             w: w + 2 * margin_w,
             h: h + 2 * margin_h,
             viewport_w,
-            viewport_h
+            viewport_h,
+            pixel_ratio
         }
     }
     console.log("Beginning new capture", message); 

@@ -28,48 +28,52 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
 });
 
 async function takeCapture(payload: CaptureRequest) {
-    const points = payload.points;
 
-    const mediaStream = await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: {
-            //@ts-ignore 
-            mandatory: {
-                chromeMediaSource: 'tab',
-                chromeMediaSourceId: payload.streamId
-            }
-        }
-    });
-    const track = mediaStream.getVideoTracks()[0];
-    const imageCapture = new ImageCapture(track);
-    const imageBitmap = await imageCapture.grabFrame();
-    track.stop();
+    
+    // const imageBitmap = await createImageBitmap(image);4
 
     //Calculate difference between viewport and imagebitmap, 
     //This will be used to properly offset the crop window
     //TODO calculate offsets precisely using canvas... the top/bottom bars may have different heights
-    const diff_w = imageBitmap.width - points.viewport_w;
-    const diff_h = imageBitmap.height - points.viewport_h;
-    const offset_x = points.x + diff_w / 2;
-    const offset_y = points.y + diff_h / 2;
-    console.log("Image differeces: ", diff_w, diff_h);
+    // const diff_w = imageBitmap.width - points.viewport_w;
+    // const diff_h = imageBitmap.height - points.viewport_h;
+    // const offset_x = points.x + diff_w / 2;
+    // const offset_y = points.y + diff_h / 2;
+    // console.log("Image differeces: ", diff_w, diff_h);
     
     //Create canvas for image manipulation
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d', { alpha: false });
 
     // Draw original image to canvas 
-    canvas.width = imageBitmap.width;
-    canvas.height = imageBitmap.height;
-    ctx.drawImage(imageBitmap, 0, 0, imageBitmap.width, imageBitmap.height);
+    const points = payload.points;
+    canvas.width = points.viewport_w;
+    canvas.height = points.viewport_h;
+
+    //Convert base64 image to bitmap
+    console.log("loading image");
+    const loadImage = (src: string) => new Promise((resolve, reject) => {
+        const img = new Image();
+        img.addEventListener('load', () => resolve(img));
+        img.addEventListener('error', (err) => reject(err));
+        img.src = src;
+    });
+    const image = await loadImage(payload.image) as HTMLImageElement;
+
+    //Wait for image to load
+    console.log("image loaded;");
+    ctx.drawImage(image, 0, 0, points.viewport_w, points.viewport_h);
+    ctx.fillStyle ='rgba(163, 163, 194, 0.4)';
+    ctx.fillRect(points.x, points.y, points.w, points.h);
     ctx.fillStyle ='rgba(163, 194, 163, 0.4)';
-    ctx.fillRect(offset_x, offset_y, points.w, points.h);
+    // ctx.fillRect(offset_x, offset_y, points.w, points.h);
     const canvasRedrawnURL = canvas.toDataURL();
 
     // Draw cropped image scaled back onto canvas
     canvas.width = 256;
     canvas.height = 256;
-    ctx.drawImage(imageBitmap, offset_x, offset_y, points.w, points.h, 0, 0, 256, 256);
+    const scale = (original: number) => original * points.pixel_ratio;
+    ctx.drawImage(image, scale(points.x), scale(points.y), scale(points.w), scale(points.h), 0, 0, 256, 256);
     const cropped256URL = canvas.toDataURL();
     console.log("The resized image is ", cropped256URL);
 
@@ -106,7 +110,7 @@ async function takeCapture(payload: CaptureRequest) {
 
     return {
         text: result,
-        debug: { cropped224URL, cropped256URL, canvasRedrawnURL}
+        debug: { cropped224URL, cropped256URL, canvasRedrawnURL, originalURL: payload.image}
     };
 }
 

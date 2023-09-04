@@ -12,20 +12,20 @@ interface CropArea {
     h: number,
     w: number,
     viewport_h: number,
-    viewport_w: number
+    viewport_w: number,
+    pixel_ratio: number
 }
 
 //Second request from service-worker to offscreen script
 interface CaptureRequest {
     tabId: number,
-    streamId: string,
+    image: string,
     points: CropArea
 }
 
 //Final request ferried back from backend to content-script
 interface BackendResponse {
     tabId: number,
-    streamId: string,
     points: CropArea
     text: string
 }
