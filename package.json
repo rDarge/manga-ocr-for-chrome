@@ -14,7 +14,7 @@
     "clean:darwin": "for file in './out/' './dist/'; do if [[ -e \"$file\" ]]; then rm -r \"$file\"; fi; done",
     "clean:linux": "for file in './out/' './dist/'; do if [ -e \"$file\" ]; then rm -r \"$file\"; fi; done",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "update-onnx": "@powershell ./update-onnx.ps1"
+    "sass": "sass .\\src\\style.sass .\\out\\style.css"
   },
   "keywords": [
     "manga-ocr",

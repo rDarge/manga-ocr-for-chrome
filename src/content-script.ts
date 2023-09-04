@@ -1,5 +1,6 @@
 //Constants
 const canvasColor = 'rgba(163, 163, 194, 0.4)';
+const guidelineColor = 'rgba(124, 124, 163, 0.4)';
 const excludedColor = 'rgba(194, 163, 163, 0.4)';
 
 
@@ -74,7 +75,7 @@ const newCapture = (ev: MouseEvent) => {
     //Insert Canvas overlay
     const canvas = document.createElement('canvas');
     pluginDiv.append(canvas);
-    canvas.setAttribute("style", "pointer-events: auto; position: absolute; height: 100%; width: 100%; top: 0; left: 0")
+    canvas.setAttribute("style", "pointer-events: auto; position: fixed; height: 100%; width: 100%; top: 0; left: 0")
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
@@ -97,7 +98,22 @@ const newCapture = (ev: MouseEvent) => {
     let x2: number = 0;
     let y2: number = 0;
 
-    //Handles selection of coordinates
+    //Until they click, we'll draw guidelines at the mouse position
+    canvas.onmousemove = (move: MouseEvent) => {
+        const moveRect = canvas.getBoundingClientRect();
+        const x = move.clientX - moveRect.left; 
+        const y = move.clientY - moveRect.top;
+
+        //Draw guidelines
+        ctx.clearRect(0,0, canvas.width, canvas.height);
+        ctx.fillStyle = canvasColor;
+        ctx.fillRect(0,0, canvas.width, canvas.height);
+        ctx.fillStyle = guidelineColor;
+        ctx.fillRect(0,y,canvas.width, 1); //Horizontal Guideline
+        ctx.fillRect(x,0,1,canvas.height); //Vertical Guideline 
+    }
+
+    //When the user clicks, we note the coordinates and prepare to capture a region
     canvas.onmousedown = ((firstClick: MouseEvent) => {
         if(firstClick.button !== 0) {
             return;
@@ -171,40 +187,45 @@ const newCapture = (ev: MouseEvent) => {
     })
 }
 
+const movableElement = (element: HTMLElement) => {
+    return (ev: MouseEvent) => {
+        if(ev.button !== 0) {
+            return;
+        }
+    
+        const firstRect = element.getBoundingClientRect();
+        const x_inset = ev.clientX - firstRect.left; 
+        const y_inset = ev.clientY - firstRect.top;
+    
+        const updatePosition = (mv: MouseEvent) => {
+            const x = mv.clientX - x_inset; 
+            const y = mv.clientY - y_inset;
+            element.style.left = `${x}px`;
+            element.style.top = `${y}px`;
+        };
+    
+        document.addEventListener('mousemove', updatePosition);
+        document.addEventListener('mouseup', (up: MouseEvent) => {
+            document.removeEventListener('mousemove', updatePosition);
+        }, {once: true});
+    }
+}
+
 
 const pluginDiv = document.createElement('div');
-pluginDiv.setAttribute("style", "position:absolute; left: 0; right: 0; top: 0; bottom: 0; pointer-events: none");
+pluginDiv.setAttribute("style", "position:fixed; left: 0; right: 0; top: 0; bottom: 0; pointer-events: none; z-index: 1");
 document.body.append(pluginDiv);
 
 const debugDiv = document.createElement('div');
-debugDiv.setAttribute("style", "display:none; position: absolute; left: 50%; top: 10%; border: 0.1rem solid; opacity: 75%; background-color: rgb(255, 255, 255)");
+debugDiv.setAttribute("style", "pointer-events: auto; display:none; position: fixed; left: 50%; top: 10%; border: 0.1rem solid; opacity: 75%; background-color: rgb(255, 255, 255)");
+debugDiv.addEventListener('mousedown', movableElement(debugDiv));
 pluginDiv.append(debugDiv);
 
 const controlDiv = document.createElement('div');
-controlDiv.setAttribute("style", "pointer-events: auto; position:absolute; left: 50%; right:50%; top: 10px; width: 200px; border: 0.1rem solid; border-radius: 0.05rem; padding: 1rem; background-color: white");
+controlDiv.setAttribute("style", "pointer-events: auto; position:fixed; left: 50%; right:50%; top: 10px; width: 200px; border: 0.1rem solid; border-radius: 0.05rem; padding: 1rem; background-color: white");
+controlDiv.addEventListener('mousedown', movableElement(controlDiv));
 pluginDiv.append(controlDiv);
 
-controlDiv.addEventListener('mousedown', (ev: MouseEvent) => {
-    if(ev.button !== 0) {
-        return;
-    }
-
-    const firstRect = controlDiv.getBoundingClientRect();
-    const x_inset = ev.clientX - firstRect.left; 
-    const y_inset = ev.clientY - firstRect.top;
-
-    const updatePosition = (mv: MouseEvent) => {
-        const x = mv.clientX - x_inset; 
-        const y = mv.clientY - y_inset;
-        controlDiv.style.left = `${x}px`;
-        controlDiv.style.top = `${y}px`;
-    };
-
-    document.addEventListener('mousemove', updatePosition);
-    document.addEventListener('mouseup', (up: MouseEvent) => {
-        document.removeEventListener('mousemove', updatePosition);
-    }, {once: true});
-});
 
 const startOCRButton = document.createElement('button');
 startOCRButton.onclick = newCapture
