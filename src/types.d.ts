@@ -1,7 +1,7 @@
 
 interface Message {
-    type: 'OCRStart' | 'ProcessBackend'| 'OCRComplete',
-    payload: CropArea | CaptureRequest | BackendResponse
+    type: 'InitializeOCR' | 'OCRStart' | 'ProcessBackend'| 'OCRComplete',
+    payload: OCRConfig | CropArea | CaptureRequest | BackendResponse
     debug?: any
 }
 
@@ -28,4 +28,13 @@ interface BackendResponse {
     tabId: number,
     points: CropArea
     text: string
+}
+
+interface OCRConfig {
+    vocabURL: string,
+    encoderModelURL: string,
+    decoderModelURL: string,
+    startupSampleURL: string,
+    startupSampleExpectation: string
+    skipStartupSample?: boolean;
 }

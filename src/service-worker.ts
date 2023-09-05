@@ -1,3 +1,13 @@
+const DEFAULT_CONFIG: OCRConfig = {
+    vocabURL: chrome.runtime.getURL('vocab.txt'),
+    encoderModelURL: chrome.runtime.getURL('encoder_model.onnx'),
+    decoderModelURL: chrome.runtime.getURL('decoder_model.onnx'),
+    startupSampleURL: chrome.runtime.getURL('sample.csv'),
+    startupSampleExpectation: "いつも何かに追われていて",
+    skipStartupSample: true
+};
+
+
 chrome.action.onClicked.addListener(function (tab) {
     const tabId = tab.id;
     if (!tab.url.includes('chrome://')) {
@@ -12,31 +22,44 @@ chrome.action.onClicked.addListener(function (tab) {
     }
 });
 
+async function initializeOffscreen(): Promise<string> {
+    await chrome.offscreen.createDocument({
+        url: 'offscreen.html',
+        reasons: [chrome.offscreen.Reason.USER_MEDIA],
+        justification: 'Background processing of OCR requests'
+    })
+
+    //Send initialization request
+    const request: Message = {
+        type: 'InitializeOCR',
+        payload: DEFAULT_CONFIG
+    };
+    const result = await chrome.runtime.sendMessage(request);
+    return result;
+}
 
 
 chrome.runtime.onMessage.addListener(
-    async function (request, sender, sendResponse) {
-        console.log("Received message from: ", sender, request);
+    async function (request, sender) {
+        console.debug("Received message in service-worker from: ", sender, request);
         const message = request as Message;
         if(message.type === 'OCRStart') {
+            //A user has selected a region on the screen to perform OCR on
             const imagePoints = message.payload as CropArea;
-
             const image = await chrome.tabs.captureVisibleTab(sender.tab.windowId, {
                 format: 'png'
             });
-            console.log("Capture of tab is: ", image);
     
-            //@ts-ignore types out of date: https://github.com/GoogleChrome/chrome-extensions-samples/blob/main/functional-samples/sample.tabcapture-recorder/service-worker.js
+            // https://github.com/GoogleChrome/chrome-extensions-samples/blob/main/functional-samples/sample.tabcapture-recorder/service-worker.js
+            //@ts-ignore types out of date 
             const existingContexts = await chrome.runtime.getContexts({});
-    
             const offscreenDocument = existingContexts.find(c => c.contextType === 'OFFSCREEN_DOCUMENT');
     
             if (!offscreenDocument) {
-                await chrome.offscreen.createDocument({
-                    url: 'offscreen.html',
-                    reasons: [chrome.offscreen.Reason.USER_MEDIA],
-                    justification: 'Background processing of OCR requests'
-                })
+                const result = await initializeOffscreen();
+                if(result === "NOT OK") {
+                    console.warn("OCR model may have failed to load, check logs for further details");
+                }
             }
     
             const request: Message = {
@@ -47,15 +70,11 @@ chrome.runtime.onMessage.addListener(
                     points: imagePoints
                 }
             }
-            console.log("Queuing request to offscreen tab:", request);
-            const result = await chrome.runtime.sendMessage(request);
-            console.log("Response from offscreen worker is");
-            sendResponse(result);
+            chrome.runtime.sendMessage(request);
         } else if (message.type === 'OCRComplete') {
-            console.log("Message complete!", message.payload);
+            //This request must be forwarded to the tab, since the offscreen worker does not have access to that resource
             const payload = message.payload as BackendResponse;
             const tabId = payload.tabId;
-            console.log("Forwarding message to original tab for final processing");
             chrome.tabs.sendMessage(tabId, message);
         }
     }

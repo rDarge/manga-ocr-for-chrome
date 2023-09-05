@@ -1,14 +1,5 @@
 const ort = require('onnxruntime-web');
 
-export interface OCRConfig {
-    vocabURL: string,
-    encoderModelURL: string,
-    decoderModelURL: string,
-    startupSampleURL: string,
-    startupSampleExpectation: string
-    skipStartupSample?: boolean;
-}
-
 export class OCRModel {
 
     private config: OCRConfig;
@@ -24,11 +15,13 @@ export class OCRModel {
     private maxReturnLength: number = 100; //300;
     //Reduced max return length; there are certain situations where it will be stuck parsing a non-end character indefinitely
 
-    constructor(config: OCRConfig){
-        this.config = config;  
+    constructor(){
+
     }
 
-    public async init() {
+    public async init(config: OCRConfig): Promise<boolean> {
+        this.config = config;
+
         if(this.initialized) {
             return;
         }
@@ -36,23 +29,23 @@ export class OCRModel {
         //Set ORT threads to 1, since the csp permissions are borked in workers currently: 
         ort.env.wasm.numThreads = 1;
         
-        console.log("Loading OCR model...");
+        console.debug("Loading OCR model...");
         const vocab = await this.getVocab();
-        console.log(`${vocab.length} vocabulary loaded`);
-        console.log(`Loading encoder from ${this.config.encoderModelURL}`);
+        console.debug(`${vocab.length} vocabulary loaded`);
+        console.debug(`Loading encoder from ${this.config.encoderModelURL}`);
         await this.getEncoder();
-        console.log(`Loading decoder from ${this.config.decoderModelURL}`);
+        console.debug(`Loading decoder from ${this.config.decoderModelURL}`);
         await this.getDecoder();
-        console.log(`Performing startup OCR operation`);
+        console.debug(`Performing startup OCR operation`);
         if(!this.config.skipStartupSample) {
             const startupSample = await this.doExampleOCR();
             if(startupSample === this.config.startupSampleExpectation) {
-                console.log("Example OCR sample parsed correctly. Model ready!");
+                console.debug("Example OCR sample parsed correctly. Model ready!");
             } else {
                 console.warn("Example OCR did not match expected result. Model may behave improperly");
             }
         } else {
-            console.log("Startup example skipped per configuration. Model ready!")
+            console.debug("Startup example skipped per configuration. Model ready!")
         }
         this.initialized = true;
         return true;        
@@ -125,12 +118,12 @@ export class OCRModel {
                 input_ids: new ort.Tensor("int64", newIds, [1,newResults.length]),
                 encoder_hidden_states: inputFeed.encoder_hidden_states
             }
-            console.log("newResults are" , newResults);
+            console.debug("newResults are" , newResults);
             return await this.runDecoder(decoder, newInput);
         } else {
             const vocab = await this.getVocab();
             const output = newResults.filter(idx => idx > 14).map(idx => vocab[Number(idx)]).join('');
-            console.log(output);
+            console.debug("Final OCR result is ", output);
             return output;
         }
     }
@@ -162,7 +155,7 @@ export class OCRModel {
         const input_data = new ort.Tensor("float32", array, this.inputFormat);
         const feeds = { pixel_values: input_data}
         const encoder_results = await encoder.run(feeds);
-        console.log("encoder complete...  running decoder")
+        console.debug("encoder complete; running decoder")
 
         //Run decoder
         const decoder = await this.getDecoder();
