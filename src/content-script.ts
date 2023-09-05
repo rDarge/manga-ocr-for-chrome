@@ -15,7 +15,9 @@ chrome.runtime.onMessage.addListener(async function(request, sender, sendRespons
         const payload = response.payload as BackendResponse;
         const result = payload.text;
         console.log("Final result is ", result);
-        ocrResults.innerText = result;
+        const resultElement = document.createElement("li");
+        resultElement.textContent = result;
+        messageList.append(resultElement)
         enableOCRButton();
 
         //Debugging image translation issues
@@ -243,9 +245,12 @@ const disableOCRButton = (message: string) => {
 }
 disableOCRButton("OCR Model loading...");
 
-const ocrResults = document.createElement('p');
-ocrResults.addEventListener("mousedown", (e: MouseEvent) => {e.stopPropagation()});
-controlDiv.append(ocrResults);
+
+const ocrHistoryLabel = document.createElement("label");
+const messageList = document.createElement('ul');
+controlDiv.append(messageList);
+messageList.addEventListener("mousedown", (e: MouseEvent) => {e.stopPropagation()});
+
 
 //Final initialization; prepare OCR engine and add UI buttons
 enableOCRButton();

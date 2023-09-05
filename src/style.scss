@@ -17,7 +17,17 @@
         border: 0.1rem solid; 
         border-radius: 0.05rem; 
         padding: 1rem; 
-        background-color: white
+        background-color: white;
+        
+        ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+
+            li:nth-child(2n) {
+                background-color: lightgray;
+            }
+        }
     }
 
     .debug-window {
