@@ -1,3 +1,18 @@
+import OpenAI from 'openai';
+import { openai_sdk_key } from './devSecrets';
+
+const openai = new OpenAI({
+    apiKey: openai_sdk_key
+});
+
+//TODO: Parameterize this and builld interface for user to tinker and provide additional context
+const prompt = `You are a professional translation engine for translating Japanese to English.
+Your task is to translate the following excerpts from a Manga.
+If you are ever unsure of how to translate something, leave it as Japanese.
+
+# Manga Text #
+`
+
 const DEFAULT_CONFIG: OCRConfig = {
     vocabURL: chrome.runtime.getURL('vocab.txt'),
     encoderModelURL: chrome.runtime.getURL('encoder_model.onnx'),
@@ -15,7 +30,7 @@ chrome.action.onClicked.addListener(function (tab) {
             target: { tabId },
             files: ['content-script.js']
         });
-        chrome.scripting.insertCSS( {
+        chrome.scripting.insertCSS({
             target: { tabId },
             files: ['style.css']
         });
@@ -43,30 +58,29 @@ chrome.runtime.onMessage.addListener(
     async function (request, sender) {
         console.debug("Received message in service-worker from: ", sender, request);
         const message = request as Message;
-        if(message.type === 'OCRStart') {
+        if (message.type === 'OCRStart') {
             //A user has selected a region on the screen to perform OCR on
             const imagePoints = message.payload as CropArea;
             const image = await chrome.tabs.captureVisibleTab(sender.tab.windowId, {
                 format: 'png'
             });
-    
-            // https://github.com/GoogleChrome/chrome-extensions-samples/blob/main/functional-samples/sample.tabcapture-recorder/service-worker.js
-            //@ts-ignore types out of date 
+
+            //@ts-ignore chrome types out of date 
             const existingContexts = await chrome.runtime.getContexts({});
             const offscreenDocument = existingContexts.find(c => c.contextType === 'OFFSCREEN_DOCUMENT');
-    
+
             if (!offscreenDocument) {
                 const result = await initializeOffscreen();
-                if(result === "NOT OK") {
+                if (result === "NOT OK") {
                     console.warn("OCR model may have failed to load, check logs for further details");
                 }
             }
-    
+
             const request: Message = {
                 type: 'ProcessBackend',
                 payload: {
-                    image: image, 
-                    tabId: sender.tab.id, 
+                    image: image,
+                    tabId: sender.tab.id,
                     points: imagePoints
                 }
             }
@@ -76,6 +90,27 @@ chrome.runtime.onMessage.addListener(
             const payload = message.payload as BackendResponse;
             const tabId = payload.tabId;
             chrome.tabs.sendMessage(tabId, message);
+        } else if (message.type === 'TranslationRequest') {
+            console.log("attempting to query openai for translation");
+            const messages = message.payload.messages as string[];
+            const content = prompt + messages.join('\n');
+
+            const completion = await openai.chat.completions.create({
+                messages: [{ role: 'user', content }],
+                model: 'gpt-3.5-turbo',
+            });
+            console.log("Full response: ", completion);
+            const result = completion.choices[0].message.content;
+            console.log("First choice: ", result);
+            
+            //Send translation response back
+            const response : TranslationResponse = {
+                type: 'TranslationResponse',
+                payload: {
+                    messages: result.split('\n')
+                }
+            }
+            chrome.tabs.sendMessage(sender.tab.id, response);
         }
     }
 )

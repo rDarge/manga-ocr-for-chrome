@@ -14,7 +14,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     if (message.type === 'ProcessBackend') {
         const payload = message.payload as CaptureRequest;
         const result = await takeCapture(payload);
-        const response: Message = {
+        const response: OCRCompleteRequest = {
             type: 'OCRComplete',
             payload: { ...payload, text: result.text },
             debug: result.debug

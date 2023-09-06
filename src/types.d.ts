@@ -1,8 +1,49 @@
+interface TranslationRequest {
+    type: 'TranslationRequest',
+    payload: {
+        messages: string[]
+    }
+}
 
-interface Message {
-    type: 'InitializeOCR' | 'OCRStart' | 'ProcessBackend'| 'OCRComplete',
-    payload: OCRConfig | CropArea | CaptureRequest | BackendResponse
-    debug?: any
+interface TranslationResponse {
+    type: 'TranslationResponse',
+    payload: {
+        messages: string[]
+    }
+}
+
+
+interface OCRCompleteRequest {
+    type: 'OCRComplete',
+    payload: BackendResponse
+    debug: any
+}
+
+interface ProcessBackendRequest {
+    type: 'ProcessBackend',
+    payload: CaptureRequest
+}
+
+interface OCRStartRequest {
+    type: 'OCRStart',
+    payload: CropArea
+}
+
+interface InitializeOCRRequest { 
+    type: 'InitializeOCR',
+    payload: OCRConfig
+}
+
+type Message = TranslationRequest | TranslationResponse | 
+    OCRCompleteRequest | ProcessBackendRequest | 
+    OCRStartRequest | InitializeOCRRequest 
+
+// For capturing an area on the screen
+interface OCRCaptureParameters {
+    x1: number,
+    x2: number,
+    y1: number,
+    y2: number
 }
 
 //Original message from content-script to service-worker

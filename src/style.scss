@@ -1,3 +1,8 @@
+// TODO styling appears different on some domains, likely due to css styling bleed-over from the embedded page. 
+// Track down loose styles and reign them in.
+// Also, if the page is resized, the floating elements may be drawn offscreen. 
+// In this case, they should be moved back onscreen at the closest point or a default position
+
 .ocr-extension-root {
     position:fixed; 
     left: 0; 
@@ -18,6 +23,11 @@
         border-radius: 0.05rem; 
         padding: 1rem; 
         background-color: white;
+
+        .ocr-history {
+            margin-top: 0.5rem;
+            font-size: medium;
+        }
         
         ul {
             list-style-type: none;
@@ -26,6 +36,10 @@
 
             li:nth-child(2n) {
                 background-color: lightgray;
+            }
+
+            .translation-available {
+                list-style-type: '訳';
             }
         }
     }

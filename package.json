@@ -29,7 +29,8 @@
   "author": "ryan.darge@gmail.com",
   "license": "Apache-2.0",
   "dependencies": {
-    "onnxruntime-web": "^1.15.1"
+    "onnxruntime-web": "^1.15.1",
+    "openai": "^4.4.0"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.244",

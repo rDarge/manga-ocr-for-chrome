@@ -3,33 +3,52 @@ import { movableElement } from "../util";
 export class OCRControlElement { 
     private controlDiv: HTMLDivElement;
     private startOCRButton: HTMLButtonElement;
-    private messageListLabel: HTMLLabelElement;
+    private messageListDiv: HTMLDivElement;
     private messageList: HTMLUListElement;
+    private translateButton: HTMLButtonElement;
 
     private ocrResults: string[] = [];
+    private translateResults: string[] = [];
 
-    constructor(parent: HTMLElement, captureFunction: (this: GlobalEventHandlers, ev: MouseEvent) => any) {
+    constructor(parent: HTMLElement, captureFunction, translateFunction) {
         this.controlDiv = document.createElement('div');
         this.controlDiv.classList.add("control-window");
         this.controlDiv.addEventListener('mousedown', movableElement(this.controlDiv));
         parent.append(this.controlDiv);
         
         // New Capture Button
+        const buttonContainer = document.createElement('div');
+        this.controlDiv.append(buttonContainer);
         this.startOCRButton = document.createElement('button');
         this.startOCRButton.onclick = captureFunction
-        this.controlDiv.append(this.startOCRButton);
+        buttonContainer.append(this.startOCRButton);
         
         this.enableOCRButton();
         
         // Previous capture results
-        this.messageListLabel = document.createElement("label");
-        this.messageListLabel.innerText = "OCR History:"
-        this.messageListLabel.classList.add("hidden");
-        this.controlDiv.append(this.messageListLabel);
-
+        this.messageListDiv = document.createElement('div');
+        this.messageListDiv.classList.add("ocr-history", "hidden");
+        this.controlDiv.append(this.messageListDiv);
+        
+        // Label
+        const messageListLabel = document.createElement("label");
+        messageListLabel.innerText = "OCR History:"
+        this.messageListDiv.append(messageListLabel);
+        
+        // OCR History
         this.messageList = document.createElement('ul');
-        this.controlDiv.append(this.messageList);
+        this.messageListDiv.append(this.messageList);
         this.messageList.addEventListener("mousedown", (e: MouseEvent) => {e.stopPropagation()});
+
+        // Request Translation Button
+        this.translateButton = document.createElement('button');
+        this.translateButton.innerText = "Translate"
+        this.translateButton.onclick = () => {
+            console.log("Requesting translation for: ", this.ocrResults.join("\n"));
+            translateFunction(this.ocrResults);
+        }
+        this.messageListDiv.append(this.translateButton);
+        
     }
 
     public enableOCRButton(message ?: string) {
@@ -47,7 +66,27 @@ export class OCRControlElement {
         const resultElement = document.createElement("li");
         resultElement.textContent = result;        
         this.messageList.append(resultElement);
-        this.messageListLabel.classList.remove("hidden");
+        this.messageListDiv.classList.remove("hidden");
+    }
+
+    public addTranslationResult(messages: string[]) {
+        this.translateResults = messages;
+
+        // Add it as a tooltip for each entry?
+        // Clear and redraw
+        this.messageList.innerHTML = '';
+        for(let x = 0; x < this.ocrResults.length; x++) {
+            const message = this.ocrResults[x];
+            const resultElement = document.createElement("li");
+            resultElement.textContent = message;        
+            this.messageList.append(resultElement);
+
+            if(x < this.translateResults.length) {
+                const tip = this.translateResults[x];
+                resultElement.classList.add('translation-available');
+                resultElement.title = tip;
+            }
+        }
     }
 
     public hide() {
