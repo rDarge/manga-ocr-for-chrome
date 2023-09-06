@@ -6,11 +6,16 @@ const openai = new OpenAI({
 });
 
 //TODO: Parameterize this and builld interface for user to tinker and provide additional context
-const prompt = `You are a professional translation engine for translating Japanese to English.
+const prompt_prefix = `You are a professional translation engine for translating Japanese to English.
 Your task is to translate the following excerpts from a Manga.
 If you are ever unsure of how to translate something, leave it as Japanese.
 
 # Manga Text #
+`
+
+const prompt_suffix = `
+
+# Translated Text #
 `
 
 const DEFAULT_CONFIG: OCRConfig = {
@@ -93,13 +98,13 @@ chrome.runtime.onMessage.addListener(
         } else if (message.type === 'TranslationRequest') {
             console.log("attempting to query openai for translation");
             const messages = message.payload.messages as string[];
-            const content = prompt + messages.join('\n');
+            const content = prompt_prefix + messages.join('\n') + prompt_suffix;
 
             const completion = await openai.chat.completions.create({
                 messages: [{ role: 'user', content }],
                 model: 'gpt-3.5-turbo',
             });
-            console.log("Full response: ", completion);
+            console.log("Full prompt and response: ", content, completion);
             const result = completion.choices[0].message.content;
             console.log("First choice: ", result);
             
