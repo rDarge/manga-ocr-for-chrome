@@ -1,8 +1,8 @@
 import OpenAI from 'openai';
-import { openai_sdk_key } from './devSecrets';
+import { openai_api_key } from './dev-secrets';
 
 const openai = new OpenAI({
-    apiKey: openai_sdk_key
+    apiKey: openai_api_key
 });
 
 //TODO: Parameterize this and builld interface for user to tinker and provide additional context
