@@ -32,10 +32,15 @@ Thank you for your patience!
 ## Check out these other cool projects:
 
 - [manga-ocr](https://github.com/kha-white/manga-ocr) - an OCR model for japanese text focused on manga. - [huggingface](https://huggingface.co/kha-white/manga-ocr-base)
-- [openai](https://github.com/openai/openai-node) - Javascript/Typescript API library for interacting with OpenAI's services
+- [EasyOCR](https://github.com/JaidedAI/EasyOCR) - Another popular OCR library with 80+ supported languages
 - [yomitan](https://github.com/themoeway/yomitan) - A community-maintained fork of the now-sunset Yomichan project (chrome extension)
 - [rikaikun](https://github.com/melink14/rikaikun) - A chrome extension that shows definitions of japanese words when you hover over them
+- [Manga Image Translator](https://github.com/zyddnys/manga-image-translator) - Another tool designed to translate japanese manga that supports inpainting and text rendering
+- [Balloon Translator](https://github.com/dmMaze/BallonsTranslator) - Yet another computer-aided comic/manga translation tool powered by deep learning
 - [Sugoi Translation Toolkit](https://www.patreon.com/mingshiba/about) - A suite of tools you can use to translate japanese manga, games, and other media. 
+- [Mokuro](https://github.com/kha-white/mokuro) - A Japanese learning tool that allows you to batch OCR downloaded manga and generate HTML files you can use to read. Works best with an extension like yomitan/rikaikun/etc.
+- [VGT](https://github.com/K-RT-Dev/VGT) - An electron app that also offers OCR + LLM API integrations
+- [openai](https://github.com/openai/openai-node) - Javascript/Typescript API library for interacting with OpenAI's services
 - [Prompt Engineering Guide](https://www.promptingguide.ai) - A guide on how to build better prompts to use with LLMs
 
 ## TODO
