@@ -10,5 +10,5 @@ out/
 res/*.onnx
 
 # Define an exported constant 'openai_sdk_key' here but don't commit it to VCS
-src/devSecrets.ts
+src/dev-secrets.ts
 # This will be moved externally somehow soon... 
