@@ -11,6 +11,7 @@
     bottom: 0; 
     pointer-events: none; 
     z-index: 1;
+    font-family: Arial, sans-serif;
 
     .control-window {
         pointer-events: auto; 
@@ -18,14 +19,20 @@
         left: 50%; 
         right:50%; 
         top: 10px; 
-        width: 200px; 
-        border: 0.1rem solid; 
-        border-radius: 0.05rem; 
-        padding: 1rem; 
+        width: 250px; 
+        text-align:center;
+        border: 0.1rem solid black; 
+        border-radius: 0.5rem; 
+        padding: 0.5rem;
         background-color: white;
+        color: black;
+        
+        button {
+            margin: 0.25rem;
+        }
 
         .ocr-history {
-            margin-top: 0.5rem;
+            padding-left: 1.25rem;
             font-size: medium;
         }
         
@@ -69,7 +76,8 @@
     }
     
     .hidden {
-        visibility: hidden;
+        // visibility: hidden;
+        display: none;
     }
 }
 
