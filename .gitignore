@@ -9,6 +9,6 @@ out/
 # Too big for git
 res/*.onnx
 
-# Define an exported constant 'openai_sdk_key' here but don't commit it to VCS
+# Define an exported constant 'openai_api_key' here but don't commit it to VCS
 src/dev-secrets.ts
 # This will be moved externally somehow soon... 
