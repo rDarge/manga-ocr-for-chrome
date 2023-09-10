@@ -1,6 +1,6 @@
 # Manga-OCR for Google Chrome
 
-This extension enables you to easily look up the meaning of words and sentences in Japanese manga you can read online in your browser. This extension aims to complement extensions like [Yomichan](https://github.com/FooSoft/yomichan) and [Rikaikun](https://github.com/melink14/rikaikun), by allowing you to perform OCR in your browser (using [manga-ocr](https://github.com/kha-white/manga-ocr)'s excellent model). 
+This extension enables you to easily look up the meaning of words and sentences in Japanese manga you can read online in your browser. This extension aims to complement extensions like [Yomichan](https://github.com/FooSoft/yomichan) and [Rikaikun](https://github.com/melink14/rikaikun), by allowing you to perform OCR in your browser (using [kha-white (manga-ocr)](https://github.com/kha-white/manga-ocr)'s excellent model). 
 
 It also allows you to fetch machine translations from online services (currently only openai's chatgpt-3.5). 
 
