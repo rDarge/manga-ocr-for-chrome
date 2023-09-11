@@ -1,14 +1,30 @@
 import { movableElement } from "../util";
 
+interface Page {
+    original: string[],
+    translation: string[],
+}
+
 export class OCRControlElement { 
     private controlDiv: HTMLDivElement;
     private startOCRButton: HTMLButtonElement;
     private messageListDiv: HTMLDivElement;
     private messageList: HTMLUListElement;
     private translateButton: HTMLButtonElement;
+    private nextPageButton: HTMLButtonElement;
+    private lastPageButton: HTMLButtonElement;
 
-    private ocrResults: string[] = [];
-    private translateResults: string[] = [];
+    private pages: Page[] = [{
+        original: [],
+        translation: []
+    }];
+    private pageIndex: number = 0;
+
+    private _page: Page;
+    get page() {
+        return this.pages[this.pageIndex];
+    }
+
 
     constructor(parent: HTMLElement, captureFunction, translateFunction) {
         this.controlDiv = document.createElement('div');
@@ -29,11 +45,25 @@ export class OCRControlElement {
         this.messageListDiv = document.createElement('div');
         this.messageListDiv.classList.add("ocr-history", "hidden");
         this.controlDiv.append(this.messageListDiv);
+
+        // Last Page Button
+        this.lastPageButton = document.createElement('button'); 
+        this.lastPageButton.innerText = '<';
+        this.lastPageButton.onclick = () => this.navigateBackward()
+        this.lastPageButton.classList.add("hidden");
+        this.messageListDiv.append(this.lastPageButton); 
         
         // Label
         const messageListLabel = document.createElement("label");
         messageListLabel.innerText = "OCR History:"
         this.messageListDiv.append(messageListLabel);
+
+        // New Page Button
+        this.nextPageButton = document.createElement('button'); 
+        this.nextPageButton.innerText = '+';
+        this.nextPageButton.onclick = () => this.navigateForward()
+        this.nextPageButton.classList.add("hidden");
+        this.messageListDiv.append(this.nextPageButton); 
         
         // OCR History
         this.messageList = document.createElement('ul');
@@ -44,16 +74,53 @@ export class OCRControlElement {
         this.translateButton = document.createElement('button');
         this.translateButton.innerText = "Translate"
         this.translateButton.onclick = () => {
-            console.log("Requesting translation for: ", this.ocrResults.join("\n"));
-            translateFunction(this.ocrResults);
+            console.log("Requesting translation for: ", this.page.original.join("\n"));
+            translateFunction(this.page.original);
         }
-        this.messageListDiv.append(this.translateButton);
-        
+        this.messageListDiv.append(this.translateButton);  
+    }
+
+    private updateMessageList() {
+        const page = this.page;
+        this.messageList.innerHTML = '';
+
+        for(let x = 0; x < page.original.length; x++) {
+            const message = page.original[x];
+            const resultElement = document.createElement("li");
+            resultElement.textContent = message;        
+            this.messageList.append(resultElement);
+
+            if(x < page.translation.length) {
+                const tip = page.translation[x];
+                resultElement.classList.add('translation-available');
+                resultElement.title = tip;
+            }
+        }
+
+        //Back Page Button
+        if(this.pageIndex === 0) {
+            this.lastPageButton.classList.add("hidden");
+        } else {
+            this.lastPageButton.classList.remove("hidden");
+        }
+
+        //Next Page Button
+        if(this.pageIndex === this.pages.length - 1) {
+            this.nextPageButton.innerText = "+";
+            if(this.page.original.length === 0) {
+                this.nextPageButton.classList.add("hidden");
+            } else {
+                this.nextPageButton.classList.remove("hidden");
+            }
+        } else {
+            this.nextPageButton.innerText = ">"
+            this.nextPageButton.classList.remove("hidden");
+        }
     }
 
     public enableOCRButton(message ?: string) {
         this.startOCRButton.toggleAttribute("disabled", false);
-        this.startOCRButton.innerText = message || 'New Capture'
+        this.startOCRButton.innerText = message || 'New Capture';
     }
 
     public disableOCRButton(message: string) {
@@ -62,30 +129,43 @@ export class OCRControlElement {
     }
 
     public addCaptureResult(result: string) {
-        this.ocrResults.push(result);
+        this.pages[this.pageIndex].original.push(result);
         const resultElement = document.createElement("li");
         resultElement.textContent = result;        
         this.messageList.append(resultElement);
         this.messageListDiv.classList.remove("hidden");
+        this.nextPageButton.classList.remove("hidden");
     }
 
     public addTranslationResult(messages: string[]) {
-        this.translateResults = messages;
+        this.page.translation = messages;
+        this.updateMessageList()
+    }
 
-        // Add it as a tooltip for each entry?
-        // Clear and redraw
-        this.messageList.innerHTML = '';
-        for(let x = 0; x < this.ocrResults.length; x++) {
-            const message = this.ocrResults[x];
-            const resultElement = document.createElement("li");
-            resultElement.textContent = message;        
-            this.messageList.append(resultElement);
+    public addPage() {
+        this.pages.push({
+            original: [],
+            translation: []
+        })
+        this.pageIndex = this.pages.length - 1;
+    }
 
-            if(x < this.translateResults.length) {
-                const tip = this.translateResults[x];
-                resultElement.classList.add('translation-available');
-                resultElement.title = tip;
+    public navigateForward() {
+        if(this.pageIndex < this.pages.length) {
+            this.pageIndex += 1;
+
+            if(this.pageIndex === this.pages.length) {
+                this.addPage();
             }
+
+            this.updateMessageList();
+        }
+    }
+
+    public navigateBackward() {
+        if(this.pageIndex > 0) {
+            this.pageIndex--;
+            this.updateMessageList();
         }
     }
 

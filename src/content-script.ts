@@ -13,10 +13,10 @@ chrome.runtime.onMessage.addListener(async function(request, sender, sendRespons
         //Process OCR
         const payload = response.payload as BackendResponse;
         controller.addCaptureResult(payload.text);
-        controller.enableOCRButton();
+        // controller.enableOCRButton();
 
         //Debugging image translation issues
-        debugWindow.present(response.debug.cropped224URL);
+        // debugWindow.present(response.debug.cropped224URL);
         sendResponse("thanks");
     } else if (response.type === 'TranslationResponse') {
         //Display translated results 
@@ -52,7 +52,7 @@ const startCapture = async (points: OCRCaptureParameters) => {
     chrome.runtime.sendMessage(message);
     setTimeout(() => {
         controller.show();
-        controller.disableOCRButton("Image is processing");
+        // controller.disableOCRButton("Image is processing");
     }, 100);
 }
 
