@@ -21,6 +21,11 @@ chrome.runtime.onMessage.addListener(async function(request, sender, sendRespons
     } else if (response.type === 'TranslationResponse') {
         //Display translated results 
         controller.addTranslationResult(response.payload.messages);
+    } else if (response.type === 'EnableOCR') {
+        controller.show();
+    } else if (response.type === 'DisableOCR') {
+        controller.hide();
+        debugWindow.hide();
     }
 });
 

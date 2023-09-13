@@ -34,9 +34,18 @@ interface InitializeOCRRequest {
     payload: OCRConfig
 }
 
+interface DisableOCRRequest {
+    type: 'DisableOCR'
+}
+
+interface EnableOCRRequest {
+    type: 'EnableOCR'
+}
+
 type Message = TranslationRequest | TranslationResponse | 
     OCRCompleteRequest | ProcessBackendRequest | 
-    OCRStartRequest | InitializeOCRRequest 
+    OCRStartRequest | InitializeOCRRequest |
+    DisableOCRRequest | EnableOCRRequest
 
 // For capturing an area on the screen
 interface OCRCaptureParameters {

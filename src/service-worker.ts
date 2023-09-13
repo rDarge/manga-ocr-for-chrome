@@ -27,18 +27,48 @@ const DEFAULT_CONFIG: OCRConfig = {
     skipStartupSample: true
 };
 
+//In case the service worker has inactivated due to inactivty, check to see what it last was
+let activeTabs = [];
+let disabledTabs = [];
+const sessionState = await chrome.storage.session.get(["activeTabs","disabledTabs"]);
+if(sessionState.activeTabs) {
+    activeTabs = sessionState.activeTabs;
+} 
+if(sessionState.disabledTabs) {
+    disabledTabs = sessionState.disabledTabs;
+}
 
 chrome.action.onClicked.addListener(function (tab) {
     const tabId = tab.id;
     if (!tab.url.includes('chrome://')) {
-        chrome.scripting.executeScript({
-            target: { tabId },
-            files: ['content-script.js']
-        });
-        chrome.scripting.insertCSS({
-            target: { tabId },
-            files: ['style.css']
-        });
+        if(disabledTabs.indexOf(tabId) >= 0) {
+            //Un-disable message
+            const message = { type: 'EnableOCR'} as EnableOCRRequest;
+            chrome.tabs.sendMessage(tabId, message);
+            disabledTabs.splice(disabledTabs.indexOf(tabId), 1);
+            activeTabs.push(tabId);
+            chrome.storage.session.set({activeTabs, disabledTabs});
+            
+        } else if (activeTabs.indexOf(tabId) >= 0) {
+            //Disable script message
+            const message = { type: 'DisableOCR'} as DisableOCRRequest;
+            chrome.tabs.sendMessage(tabId, message);
+            activeTabs.splice(disabledTabs.indexOf(tabId), 1);
+            disabledTabs.push(tabId);
+            chrome.storage.session.set({activeTabs, disabledTabs});
+
+        } else if(activeTabs.indexOf(tabId) === -1) {
+            chrome.scripting.executeScript({
+                target: { tabId },
+                files: ['content-script.js']
+            });
+            chrome.scripting.insertCSS({
+                target: { tabId },
+                files: ['style.css']
+            });
+            activeTabs.push(tabId);
+            chrome.storage.session.set({activeTabs});
+        }         
     }
 });
 

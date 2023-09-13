@@ -13,7 +13,8 @@
         "activeTab", 
         "scripting",
         "tabCapture",
-        "offscreen"
+        "offscreen",
+        "storage"
     ],
     "action": {},
     "background": {
