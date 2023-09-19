@@ -82,6 +82,7 @@ interface BackendResponse {
 
 interface OCRConfig {
     vocabURL: string,
+    detectorModelURL: string,
     encoderModelURL: string,
     decoderModelURL: string,
     startupSampleURL: string,

@@ -4,13 +4,15 @@ export class OCRModel {
 
     private config: OCRConfig;
     private vocab: string[];
+    private detector: any;
     private encoder: any;
     private decoder: any;
     private initialized: boolean = false;
 
     //TODO parameterize the following to be supplied/inferred from model and validated on init
     private vocabLength: number = 6144; 
-    private inputFormat: number[] = [1,3,224,224];
+    private encoderFormat: number[] = [1,3,224,224];
+    private detectorFormat: number[] = [1,3,1024,1024];
     private decoderInitSize: number[] = [1,1];
     private maxReturnLength: number = 100; //300;
     //Reduced max return length; there are certain situations where it will be stuck parsing a non-end character indefinitely
@@ -29,7 +31,9 @@ export class OCRModel {
         //Set ORT threads to 1, since the csp permissions are borked in workers currently: 
         ort.env.wasm.numThreads = 1;
         
-        console.debug("Loading OCR model...");
+        console.debug("Loading OCR models...");
+        // console.debug("Loading model for textbox detection");
+        // await this.getDetector();
         const vocab = await this.getVocab();
         console.debug(`${vocab.length} vocabulary loaded`);
         console.debug(`Loading encoder from ${this.config.encoderModelURL}`);
@@ -66,6 +70,23 @@ export class OCRModel {
         }
     }
 
+    /**
+     * https://github.com/zyddnys/manga-image-translator/releases/tag/beta-0.3
+     */
+    private async getDetector() {
+        if (this.detector) {
+            return this.decoder;
+        }
+
+        const detectorRequest = await fetch (this.config.detectorModelURL);
+        const detectorModel = await detectorRequest.arrayBuffer();
+        this.detector = await ort.InferenceSession.create(detectorModel);
+        return this.detector;
+    }
+
+    /**
+     * Refer to readme for instructions on building encoder model
+     */
     private async getEncoder() {
         if (this.encoder) {
             return this.encoder;
@@ -77,6 +98,9 @@ export class OCRModel {
         return this.encoder;
     }
 
+    /**
+     * Refer to readme for instructions on building decoder model
+     */
     private async getDecoder() {
         if (this.decoder) {
             return this.decoder;
@@ -143,6 +167,17 @@ export class OCRModel {
         return sample_result;
     }
 
+    public async detect(array: Float32Array) : Promise<any> {
+        
+        //Run detector
+        const detector = await this.getDetector();
+        const input_data = new ort.Tensor("float32", array, this.detectorFormat);
+        const feeds = { images: input_data }
+        const results = await detector.run(feeds);
+        
+        //TODO Defer until I wrap my head around the detector postprocessing
+    }
+
     /**
      * Performs OCR and returns the corresponding result parsed from the vocab. Only one beam, stops on first stop signal
      * @param array Preprocessed Float32Array representing a center-cropped 224x224 image normalized along three color channels
@@ -152,7 +187,7 @@ export class OCRModel {
         
         //Run encoder
         const encoder = await this.getEncoder();
-        const input_data = new ort.Tensor("float32", array, this.inputFormat);
+        const input_data = new ort.Tensor("float32", array, this.encoderFormat);
         const feeds = { pixel_values: input_data}
         const encoder_results = await encoder.run(feeds);
         console.debug("encoder complete; running decoder")

@@ -20,6 +20,7 @@ const prompt_suffix = `
 
 const DEFAULT_CONFIG: OCRConfig = {
     vocabURL: chrome.runtime.getURL('vocab.txt'),
+    detectorModelURL: chrome.runtime.getURL('comictextdetector.pt.onnx'),
     encoderModelURL: chrome.runtime.getURL('encoder_model.onnx'),
     decoderModelURL: chrome.runtime.getURL('decoder_model.onnx'),
     startupSampleURL: chrome.runtime.getURL('sample.csv'),

@@ -16,7 +16,7 @@ Note that the correct task for this model is `vision2seq-lm`, as specified below
 
 `optimum-cli export onnx -m 'kha-white/manga-ocr-base' ./OUTPUT_FOLDER --task=vision2seq-lm`
 
-This should provide a pair of files, `encoder-model.onnx` and `decoder-model.onnx`, which you should then put in the `./res` folder.
+This should provide a pair of files, `encoder-model.onnx` and `decoder-model.onnx`, which you should then put in the `./res` folder prior to building.
 
 ## Performance considerations in onnx-runtime-web
 
