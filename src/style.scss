@@ -10,7 +10,7 @@
     top: 0; 
     bottom: 0; 
     pointer-events: none; 
-    z-index: 1;
+    z-index: 999999;
     font-family: Arial, sans-serif;
 
     .control-window {
@@ -28,6 +28,7 @@
         color: black;
         
         button {
+            //Figure out regular style for button
             margin: 0.25rem;
         }
 

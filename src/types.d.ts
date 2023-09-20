@@ -76,8 +76,8 @@ interface CaptureRequest {
 //Final request ferried back from backend to content-script
 interface BackendResponse {
     tabId: number,
-    points: CropArea
-    text: string
+    points: CropArea,
+    text: string,
 }
 
 interface OCRConfig {

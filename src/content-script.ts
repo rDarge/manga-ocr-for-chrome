@@ -13,7 +13,6 @@ chrome.runtime.onMessage.addListener(async function(request, sender, sendRespons
         //Process OCR
         const payload = response.payload as BackendResponse;
         controller.addCaptureResult(payload.text);
-        // controller.enableOCRButton();
 
         //Debugging image translation issues
         // debugWindow.present(response.debug.cropped224URL);

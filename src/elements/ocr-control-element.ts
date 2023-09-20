@@ -14,6 +14,8 @@ export class OCRControlElement {
     private nextPageButton: HTMLButtonElement;
     private lastPageButton: HTMLButtonElement;
 
+    private lastKnownQueue: number = 0;
+
     private pages: Page[] = [{
         original: [],
         translation: []
@@ -36,7 +38,11 @@ export class OCRControlElement {
         const buttonContainer = document.createElement('div');
         this.controlDiv.append(buttonContainer);
         this.startOCRButton = document.createElement('button');
-        this.startOCRButton.onclick = captureFunction
+        this.startOCRButton.onclick = (e) => {
+            this.lastKnownQueue = this.lastKnownQueue + 1
+            this.enableOCRButton()
+            captureFunction(e)
+        }
         buttonContainer.append(this.startOCRButton);
         
         this.enableOCRButton();
@@ -120,7 +126,13 @@ export class OCRControlElement {
 
     public enableOCRButton(message ?: string) {
         this.startOCRButton.toggleAttribute("disabled", false);
-        this.startOCRButton.innerText = message || 'New Capture';
+        if(this.lastKnownQueue > 0) {
+            const queueString = ` (${this.lastKnownQueue} working)`
+            this.startOCRButton.innerText = (message || 'New Capture') + queueString;
+        } else {
+            this.startOCRButton.innerText = 'New Capture'
+        }
+        
     }
 
     public disableOCRButton(message: string) {
@@ -135,6 +147,9 @@ export class OCRControlElement {
         this.messageList.append(resultElement);
         this.messageListDiv.classList.remove("hidden");
         this.nextPageButton.classList.remove("hidden");
+
+        this.lastKnownQueue -= 1
+        this.enableOCRButton()
     }
 
     public addTranslationResult(messages: string[]) {
