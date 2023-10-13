@@ -34,10 +34,20 @@ export class OCRControlElement {
         this.controlDiv.addEventListener('mousedown', movableElement(this.controlDiv));
         parent.append(this.controlDiv);
         
-        // New Capture Button
+        //Top row buttons
         const buttonContainer = document.createElement('div');
         this.controlDiv.append(buttonContainer);
+
+        // Last Page Button
+        this.lastPageButton = document.createElement('button'); 
+        this.lastPageButton.innerText = '<';
+        this.lastPageButton.onclick = () => this.navigateBackward()
+        this.lastPageButton.classList.add("hidden");
+        buttonContainer.append(this.lastPageButton); 
+
+        // New Capture Button
         this.startOCRButton = document.createElement('button');
+        this.startOCRButton.classList.add("action-button")
         this.startOCRButton.onclick = (e) => {
             this.lastKnownQueue = this.lastKnownQueue + 1
             this.enableOCRButton()
@@ -45,31 +55,25 @@ export class OCRControlElement {
         }
         buttonContainer.append(this.startOCRButton);
         
-        this.enableOCRButton();
-        
-        // Previous capture results
-        this.messageListDiv = document.createElement('div');
-        this.messageListDiv.classList.add("ocr-history", "hidden");
-        this.controlDiv.append(this.messageListDiv);
-
-        // Last Page Button
-        this.lastPageButton = document.createElement('button'); 
-        this.lastPageButton.innerText = '<';
-        this.lastPageButton.onclick = () => this.navigateBackward()
-        this.lastPageButton.classList.add("hidden");
-        this.messageListDiv.append(this.lastPageButton); 
-        
-        // Label
-        const messageListLabel = document.createElement("label");
-        messageListLabel.innerText = "OCR History:"
-        this.messageListDiv.append(messageListLabel);
-
         // New Page Button
         this.nextPageButton = document.createElement('button'); 
         this.nextPageButton.innerText = '+';
         this.nextPageButton.onclick = () => this.navigateForward()
         this.nextPageButton.classList.add("hidden");
-        this.messageListDiv.append(this.nextPageButton); 
+        buttonContainer.append(this.nextPageButton); 
+        
+        this.enableOCRButton();
+        
+        // Previous capture results
+        this.messageListDiv = document.createElement('div');
+        this.messageListDiv.classList.add("ocr-history", "gone");
+        this.controlDiv.append(this.messageListDiv);
+        
+        // Label
+        // const messageListLabel = document.createElement("label");
+        // messageListLabel.innerText = "OCR History:"
+        // this.messageListDiv.append(messageListLabel);
+
         
         // OCR History
         this.messageList = document.createElement('ul');
@@ -78,6 +82,7 @@ export class OCRControlElement {
 
         // Request Translation Button
         this.translateButton = document.createElement('button');
+        this.translateButton.classList.add("action-button")
         this.translateButton.innerText = "Translate"
         this.translateButton.onclick = () => {
             console.log("Requesting translation for: ", this.page.original.join("\n"));
@@ -122,15 +127,23 @@ export class OCRControlElement {
             this.nextPageButton.innerText = ">"
             this.nextPageButton.classList.remove("hidden");
         }
+
+        if(page.original.length == 0) {
+            this.messageListDiv.classList.add("gone")
+        } else {
+            this.messageListDiv.classList.remove("gone")
+        }
     }
 
     public enableOCRButton(message ?: string) {
         this.startOCRButton.toggleAttribute("disabled", false);
         if(this.lastKnownQueue > 0) {
-            const queueString = ` (${this.lastKnownQueue} working)`
+            const queueString = ` (${this.lastKnownQueue}*)`
             this.startOCRButton.innerText = (message || 'New Capture') + queueString;
+            this.startOCRButton.title = `There are ${this.lastKnownQueue} images still processing.`
         } else {
             this.startOCRButton.innerText = 'New Capture'
+            this.startOCRButton.title = null
         }
         
     }
@@ -145,7 +158,7 @@ export class OCRControlElement {
         const resultElement = document.createElement("li");
         resultElement.textContent = result;        
         this.messageList.append(resultElement);
-        this.messageListDiv.classList.remove("hidden");
+        this.messageListDiv.classList.remove("gone");
         this.nextPageButton.classList.remove("hidden");
 
         this.lastKnownQueue -= 1

@@ -21,19 +21,23 @@
         top: 10px; 
         width: 250px; 
         text-align:center;
-        border: 0.1rem solid black; 
         border-radius: 0.5rem; 
         padding: 0.5rem;
         background-color: white;
         color: black;
         
         button {
-            //Figure out regular style for button
+            //Figure out regular style for buttons
+            border: none;
             margin: 0.25rem;
+            padding: 0.5rem;
+            font-size: medium;
+            color: white;
+            background-color: cornflowerblue;
+            cursor: pointer;
         }
 
         .ocr-history {
-            padding-left: 1.25rem;
             font-size: medium;
         }
         
@@ -47,7 +51,7 @@
             }
 
             .translation-available {
-                list-style-type: '訳';
+                text-decoration: underline;
             }
         }
     }
@@ -77,6 +81,10 @@
     }
     
     .hidden {
+        visibility: hidden;
+    }
+
+    .gone {
         display: none;
     }
 }
