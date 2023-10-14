@@ -31,7 +31,6 @@ export class OCRControlElement {
     constructor(parent: HTMLElement, captureFunction, translateFunction) {
         this.controlDiv = document.createElement('div');
         this.controlDiv.classList.add("control-window");
-        this.controlDiv.addEventListener('mousedown', movableElement(this.controlDiv));
         parent.append(this.controlDiv);
         
         //Top row buttons
@@ -49,8 +48,7 @@ export class OCRControlElement {
         this.startOCRButton = document.createElement('button');
         this.startOCRButton.classList.add("action-button")
         this.startOCRButton.onclick = (e) => {
-            this.lastKnownQueue = this.lastKnownQueue + 1
-            this.enableOCRButton()
+            this.updateOCRButton()
             captureFunction(e)
         }
         buttonContainer.append(this.startOCRButton);
@@ -62,23 +60,16 @@ export class OCRControlElement {
         this.nextPageButton.classList.add("hidden");
         buttonContainer.append(this.nextPageButton); 
         
-        this.enableOCRButton();
+        this.updateOCRButton();
         
         // Previous capture results
         this.messageListDiv = document.createElement('div');
         this.messageListDiv.classList.add("ocr-history", "gone");
         this.controlDiv.append(this.messageListDiv);
         
-        // Label
-        // const messageListLabel = document.createElement("label");
-        // messageListLabel.innerText = "OCR History:"
-        // this.messageListDiv.append(messageListLabel);
-
-        
         // OCR History
         this.messageList = document.createElement('ul');
         this.messageListDiv.append(this.messageList);
-        this.messageList.addEventListener("mousedown", (e: MouseEvent) => {e.stopPropagation()});
 
         // Request Translation Button
         this.translateButton = document.createElement('button');
@@ -86,9 +77,14 @@ export class OCRControlElement {
         this.translateButton.innerText = "Translate"
         this.translateButton.onclick = () => {
             console.log("Requesting translation for: ", this.page.original.join("\n"));
+            this.translateButton.disabled = true
+            this.translateButton.classList.add("disabled")
+            this.translateButton.innerText = "Processing..."
             translateFunction(this.page.original);
         }
         this.messageListDiv.append(this.translateButton);  
+
+        this.controlDiv.addEventListener('mousedown', movableElement(this.controlDiv, [this.messageList]));
     }
 
     private updateMessageList() {
@@ -135,7 +131,7 @@ export class OCRControlElement {
         }
     }
 
-    public enableOCRButton(message ?: string) {
+    public updateOCRButton(message ?: string) {
         this.startOCRButton.toggleAttribute("disabled", false);
         if(this.lastKnownQueue > 0) {
             const queueString = ` (${this.lastKnownQueue}*)`
@@ -145,12 +141,20 @@ export class OCRControlElement {
             this.startOCRButton.innerText = 'New Capture'
             this.startOCRButton.title = null
         }
-        
     }
 
     public disableOCRButton(message: string) {
         this.startOCRButton.toggleAttribute("disabled", true);
         this.startOCRButton.innerText = message;
+    }
+
+    public noteCaptureStarted() {
+        this.lastKnownQueue += 1;
+        this.updateOCRButton();
+    }
+
+    public cancelCaptureResult() {
+        this.show()
     }
 
     public addCaptureResult(result: string) {
@@ -162,12 +166,15 @@ export class OCRControlElement {
         this.nextPageButton.classList.remove("hidden");
 
         this.lastKnownQueue -= 1
-        this.enableOCRButton()
+        this.updateOCRButton()
     }
 
     public addTranslationResult(messages: string[]) {
         this.page.translation = messages;
         this.updateMessageList()
+        this.translateButton.disabled = false
+        this.translateButton.innerText = "Translate"
+        this.translateButton.classList.remove("disabled")
     }
 
     public addPage() {

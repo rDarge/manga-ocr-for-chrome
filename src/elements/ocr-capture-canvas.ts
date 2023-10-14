@@ -8,7 +8,7 @@ const excludedColor = 'rgba(194, 163, 163, 0.4)';
 
 // Create a disposable cavas that the user can interact with 
 // in order to specify an area on the screen between two points to perform OCR on
-export function createCaptureCanvas(parent: HTMLElement, onCapture: (params: OCRCaptureParameters) => void) {
+export function createCaptureCanvas(parent: HTMLElement, onCapture: (params: OCRCaptureParameters) => void, onCancel: () => void) {
 
     //Insert Canvas overlay
     const canvas = document.createElement('canvas');
@@ -20,6 +20,8 @@ export function createCaptureCanvas(parent: HTMLElement, onCapture: (params: OCR
 
     //Canvas cleanup
     const doneWithCanvas = () => {
+        window.removeEventListener("keydown", keyDown)
+        window.removeEventListener("keyUp", keyUp)
         canvas.remove();
     }
 
@@ -31,6 +33,24 @@ export function createCaptureCanvas(parent: HTMLElement, onCapture: (params: OCR
     let y1: number = 0;
     let x2: number = 0;
     let y2: number = 0;
+
+    let repeat = false;
+    const keyUp = (ev: KeyboardEvent) => {
+        if(ev.key == "Control") {
+            repeat = false;
+        }
+    }
+    window.addEventListener("keyup", keyUp)
+    const keyDown = (ev: KeyboardEvent) => {
+        if(ev.key == "Escape") {
+            onCancel();
+            doneWithCanvas();
+        } else if (ev.key == "Control") {
+            repeat = true;
+        }
+    }
+    window.addEventListener("keydown", keyDown)
+    
 
     //Until they click, we'll draw guidelines at the mouse position
     canvas.onmousemove = (move: MouseEvent) => {
@@ -84,10 +104,10 @@ export function createCaptureCanvas(parent: HTMLElement, onCapture: (params: OCR
 
         //Finalize selection when they mouseup
         canvas.onmouseup = (lastClick: MouseEvent) => {
-            if (firstClick.button !== 0) {
+            if (lastClick.button !== 0) {
                 return;
             }
-
+            
             const lastRect = canvas.getBoundingClientRect();
             console.debug("full canvas size is: ", lastRect);
 
@@ -109,12 +129,10 @@ export function createCaptureCanvas(parent: HTMLElement, onCapture: (params: OCR
 
             onCapture({ x1, x2, y1, y2 });
             doneWithCanvas();
-        };
-
-        //Or let them cancel with keydown
-        canvas.onkeydown = (ev: KeyboardEvent) => {
-            if (ev.key === 'Escape') {
-                doneWithCanvas();
+            if(repeat) {
+                createCaptureCanvas(parent, onCapture, onCancel);
+            } else {
+                onCancel();
             }
         };
     });

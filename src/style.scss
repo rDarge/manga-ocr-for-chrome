@@ -9,13 +9,14 @@
     right: 0; 
     top: 0; 
     bottom: 0; 
-    pointer-events: none; 
-    // z-index: 999999;
+    pointer-events: none;
+    z-index: 99; 
     font-family: Arial, sans-serif;
 
     .control-window {
         pointer-events: auto; 
         position:fixed; 
+        z-index: 0;
         left: 50%; 
         right:50%; 
         top: 10px; 
@@ -35,6 +36,11 @@
             color: white;
             background-color: cornflowerblue;
             cursor: pointer;
+
+            &.disabled {
+                background-color: grey;
+                color: lightgrey;
+            }
         }
 
         .ocr-history {
@@ -68,6 +74,7 @@
 
     .selection-canvas {
         pointer-events: auto;
+        cursor: none;
         position: fixed;
         height: 100%;
         width: 100%;
@@ -87,6 +94,10 @@
     .gone {
         display: none;
     }
+}
+
+.ocr-on-top {
+    z-index: 999999;
 }
 
 

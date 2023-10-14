@@ -54,10 +54,6 @@ const startCapture = async (points: OCRCaptureParameters) => {
     }
     console.debug("Beginning new capture", message); 
     chrome.runtime.sendMessage(message);
-    setTimeout(() => {
-        controller.show();
-        // controller.disableOCRButton("Image is processing");
-    }, 100);
 }
 
 //Called to create a new area for OCR
@@ -65,8 +61,14 @@ const newCapture = (ev: MouseEvent) => {
     //Remove control and debug elements during screenshot
     controller.hide();
     debugWindow.hide();
+    pluginDiv.classList.add("ocr-on-top")
     createCaptureCanvas(pluginDiv, (parameters) => {
+        pluginDiv.classList.remove("ocr-on-top")
         startCapture(parameters);
+        controller.noteCaptureStarted()
+    }, () => {
+        pluginDiv.classList.remove("ocr-on-top")
+        controller.cancelCaptureResult();
     })
 }
 

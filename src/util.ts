@@ -1,9 +1,9 @@
 /**
  * Allows elements to be dragged around the screen
  */
-export function movableElement(element: HTMLElement) {
+export function movableElement(element: HTMLElement, excluding: Node[] = []) {
     return (ev: MouseEvent) => {
-        if(ev.button !== 0) {
+        if(ev.button !== 0 || excluding.filter(parent => parent.contains(ev.target as Node)).length > 0) {
             return;
         }
     
