@@ -12,6 +12,7 @@ export function createCaptureCanvas(parent: HTMLElement, onCapture: (params: OCR
 
     //Insert Canvas overlay
     const canvas = document.createElement('canvas');
+    canvas.addEventListener("contextmenu", (e) => e.preventDefault())
     // pluginDiv.append(canvas);
     parent.append(canvas);
     canvas.classList.add("selection-canvas");
@@ -69,7 +70,7 @@ export function createCaptureCanvas(parent: HTMLElement, onCapture: (params: OCR
 
     //When the user clicks, we note the coordinates and prepare to capture a region
     canvas.onmousedown = ((firstClick: MouseEvent) => {
-        if (firstClick.button !== 0) {
+        if (firstClick.button !== 0 && firstClick.button !== 2) {
             return;
         }
 
@@ -104,7 +105,7 @@ export function createCaptureCanvas(parent: HTMLElement, onCapture: (params: OCR
 
         //Finalize selection when they mouseup
         canvas.onmouseup = (lastClick: MouseEvent) => {
-            if (lastClick.button !== 0) {
+            if (lastClick.button !== firstClick.button) {
                 return;
             }
             
@@ -129,7 +130,7 @@ export function createCaptureCanvas(parent: HTMLElement, onCapture: (params: OCR
 
             onCapture({ x1, x2, y1, y2 });
             doneWithCanvas();
-            if(repeat) {
+            if(repeat || lastClick.button == 2) {
                 createCaptureCanvas(parent, onCapture, onCancel);
             } else {
                 onCancel();
