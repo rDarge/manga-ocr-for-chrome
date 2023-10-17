@@ -69,6 +69,12 @@ export class OCRControlElement {
         
         // OCR History
         this.messageList = document.createElement('ul');
+        this.messageList.addEventListener("mouseup", ev => {
+            const selectedText = window.getSelection().toString();
+            if(selectedText.length > 0) {
+                navigator.clipboard.writeText(selectedText);
+            }
+        })
         this.messageListDiv.append(this.messageList);
 
         // Request Translation Button
@@ -92,15 +98,13 @@ export class OCRControlElement {
         this.messageList.innerHTML = '';
 
         for(let x = 0; x < page.original.length; x++) {
-            const message = page.original[x];
-            const resultElement = document.createElement("li");
-            resultElement.textContent = message;        
-            this.messageList.append(resultElement);
+            const message = this.createLi(page.original[x])
+            this.messageList.append(message);
 
             if(x < page.translation.length) {
                 const tip = page.translation[x];
-                resultElement.classList.add('translation-available');
-                resultElement.title = tip;
+                message.classList.add('translation-available');
+                message.title = tip;
             }
         }
 
@@ -157,11 +161,22 @@ export class OCRControlElement {
         this.show()
     }
 
+    public createLi(text: string): HTMLLIElement {
+        const resultElement = document.createElement("li");
+        resultElement.textContent = text;        
+        resultElement.addEventListener("mouseup", ev => {
+            if(window.getSelection().toString().length == 0) {
+                navigator.clipboard.writeText(text);
+            }
+        })
+        return resultElement;
+    }
+
     public addCaptureResult(result: string) {
         this.pages[this.pageIndex].original.push(result);
         const resultElement = document.createElement("li");
         resultElement.textContent = result;        
-        this.messageList.append(resultElement);
+        this.messageList.append(this.createLi(result));
         this.messageListDiv.classList.remove("gone");
         this.nextPageButton.classList.remove("hidden");
 
