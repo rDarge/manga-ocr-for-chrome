@@ -13,7 +13,9 @@ export class OCRControlElement {
     private translateButton: HTMLButtonElement;
     private nextPageButton: HTMLButtonElement;
     private lastPageButton: HTMLButtonElement;
-
+    private importButton: HTMLButtonElement; // 📤
+    private exportButton: HTMLButtonElement; // 📥
+    private clearButton: HTMLButtonElement;  // 🗑
     private lastKnownQueue: number = 0;
 
     private pages: Page[] = [{

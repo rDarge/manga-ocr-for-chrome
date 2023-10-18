@@ -40,6 +40,14 @@ const startCapture = async (points: OCRCaptureParameters) => {
     // Select a larger region to account for the center-crop operation in the image preprocessing
     const margin_w = w * .0625;
     const margin_h = h * .0625;
+    if(w < 10 || h < 10) {
+        console.debug("Capture area too small; ignoring.");
+        toast("Capture area too small, try again!")
+        controller.cancelCaptureResult()
+        return;
+    }
+
+    controller.noteCaptureStarted()
     const message: OCRStartRequest = {
         type: 'OCRStart',
         payload: {
@@ -53,6 +61,7 @@ const startCapture = async (points: OCRCaptureParameters) => {
         }
     }
     console.debug("Beginning new capture", message); 
+    toast("Starting new capture!")
     chrome.runtime.sendMessage(message);
 }
 
@@ -65,7 +74,6 @@ const newCapture = (ev: MouseEvent) => {
     createCaptureCanvas(pluginDiv, (parameters) => {
         pluginDiv.classList.remove("ocr-on-top")
         startCapture(parameters);
-        controller.noteCaptureStarted()
     }, () => {
         pluginDiv.classList.remove("ocr-on-top")
         controller.cancelCaptureResult();
@@ -79,6 +87,16 @@ const newTranslation = (messages: string[]) => {
         payload: { messages }
     };
     chrome.runtime.sendMessage(message);
+}
+
+const toast = (message: string) => {
+    const div = document.createElement("div");
+    div.textContent = message
+    div.classList.add("toast", "show");
+    pluginDiv.appendChild(div)
+    setTimeout(() => {
+        div.remove()
+    }, 1900)
 }
 
 // Plugin Div
