@@ -9,6 +9,9 @@ const excludedColor = 'rgba(194, 163, 163, 0.4)';
 // Create a disposable cavas that the user can interact with 
 // in order to specify an area on the screen between two points to perform OCR on
 export function createCaptureCanvas(parent: HTMLElement, onCapture: (params: OCRCaptureParameters) => void, onCancel: () => void) {
+    //Prevent scrolling
+    const body = document.getElementsByTagName("body")[0];
+    body.classList.add("stop-scrolling")
 
     //Insert Canvas overlay
     const canvas = document.createElement('canvas');
@@ -23,6 +26,7 @@ export function createCaptureCanvas(parent: HTMLElement, onCapture: (params: OCR
     const doneWithCanvas = () => {
         window.removeEventListener("keydown", keyDown)
         window.removeEventListener("keyUp", keyUp)
+        body.classList.remove("stop-scrolling")
         canvas.remove();
     }
 
