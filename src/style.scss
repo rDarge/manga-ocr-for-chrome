@@ -22,9 +22,10 @@
         top: 10px; 
         width: 250px; 
         text-align:center;
+        border: 1px solid lightgrey;
         border-radius: 0.5rem; 
         padding: 0.5rem;
-        background-color: white;
+        background-color: rgba(255,255,255,0.5);
         color: black;
         
         button {
@@ -51,6 +52,7 @@
             list-style-type: none;
             margin: 0;
             padding: 0;
+            background-color: white;
 
             li:nth-child(2n) {
                 background-color: lightgray;
