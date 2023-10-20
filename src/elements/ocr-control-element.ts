@@ -101,13 +101,14 @@ export class OCRControlElement {
 
         for(let x = 0; x < page.original.length; x++) {
             const message = this.createLi(page.original[x])
-            this.messageList.append(message);
 
             if(x < page.translation.length) {
                 const tip = page.translation[x];
                 message.classList.add('translation-available');
                 message.title = tip;
             }
+
+            this.messageList.append(message);
         }
 
         //Back Page Button
@@ -171,6 +172,66 @@ export class OCRControlElement {
                 navigator.clipboard.writeText(text);
             }
         })
+
+        //Fancy right click actions
+        resultElement.addEventListener("mousedown", ev => {
+            if(ev.button != 2 || window.getSelection().toString().length > 0) {
+                return; 
+            }
+            console.log("Right click initiated");
+            const noRightClick = (e: Event) => e.preventDefault()
+            this.controlDiv.addEventListener("contextmenu", noRightClick, {once: true})
+
+            //Handle quick action
+            const quickAction = (ev2: MouseEvent) => {
+                console.log("Quick Right Click");
+            }
+            resultElement.addEventListener("mouseup", quickAction)
+            setTimeout(() => {
+                resultElement.removeEventListener("mouseup", quickAction)
+            }, 500)
+
+            //Handle dragging of elements
+            if(this.messageList.childNodes.length > 1) {
+                const updatePosition = (mv: MouseEvent) => {
+                    resultElement.style.fontStyle = 'italic'
+                    resultElement.style.opacity = '50%'
+                };
+                document.addEventListener('mousemove', updatePosition);
+    
+    
+                //Also allow for quick right click event
+                const mouseUp = (ev2: MouseEvent) => {
+                    console.log("Done with right click event")
+                    var remove = false;
+                    if(ev2.target instanceof HTMLElement) {
+                        const target = ev2.target as HTMLElement
+                        if(this.messageList.contains(target) && target != resultElement) {
+                            //Merge OCR Result
+                            const source = resultElement.textContent;
+                            const sourceIndex = this.page.original.indexOf(source);
+                            const otherIndex = this.page.original.indexOf(target.textContent);
+                            this.page.original[otherIndex] += source;
+                            this.page.original.splice(sourceIndex, 1)
+                            // target.textContent += resultElement.textContent;
+                            remove = true;
+                        }
+                    }
+                    if(remove) {
+                        resultElement.remove();
+                        this.page.translation = [];
+                        this.updateMessageList();
+                    } else {
+                        resultElement.style.fontStyle = null;
+                        resultElement.style.opacity = null;
+                    }
+                    document.removeEventListener('mousemove', updatePosition);
+    
+                }
+                document.addEventListener("mouseup", mouseUp, {once: true})
+            }
+        })
+
         return resultElement;
     }
 
