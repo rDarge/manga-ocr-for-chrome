@@ -43,7 +43,7 @@ const startCapture = async (points: OCRCaptureParameters) => {
     if(w < 10 || h < 10) {
         console.debug("Capture area too small; ignoring.");
         toast("Capture area too small, try again!")
-        controller.cancelCaptureResult()
+        // controller.cancelCaptureResult()
         return;
     }
 
