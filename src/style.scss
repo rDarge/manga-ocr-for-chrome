@@ -42,6 +42,11 @@
                 background-color: grey;
                 color: lightgrey;
             }
+
+            &.small {
+                font-size: small;
+                padding: 0.25rem;
+            }
         }
 
         .button-row {

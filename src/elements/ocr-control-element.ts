@@ -234,7 +234,31 @@ export class OCRControlElement {
 
             //Handle quick action
             const quickAction = (ev2: MouseEvent) => {
-                console.log("Quick Right Click");
+                
+                if (resultElement.classList.contains("expanded")) {
+                    //Hide additional details, if any
+                    for(const child of resultElement.getElementsByTagName("div")) {
+                        child.remove()
+                    }
+                    resultElement.classList.remove("expanded")
+                } else {
+                    //Expand message to allow user to look up details
+                    const expandedDiv = document.createElement("div")
+                    resultElement.appendChild(expandedDiv)
+
+                    const translateButton = document.createElement("button")
+                    translateButton.classList.add("small")
+                    translateButton.innerText = "Translate"
+                    expandedDiv.appendChild(translateButton)
+                    
+                    const vocabButton = document.createElement("button")
+                    vocabButton.classList.add("small")
+                    vocabButton.innerText = "Vocab"
+                    expandedDiv.appendChild(vocabButton)
+                    
+                    resultElement.classList.add("expanded")
+                }
+                
             }
             resultElement.addEventListener("mouseup", quickAction)
             setTimeout(() => {
