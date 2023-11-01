@@ -1,4 +1,8 @@
 import { movableElement } from "../util";
+import { UploadOutlined } from "@ant-design/icons-svg";
+import { DownloadOutlined } from "@ant-design/icons-svg";
+import { renderIconDefinitionToSVGElement } from '@ant-design/icons-svg/es/helpers'
+import { IconDefinition } from "@ant-design/icons-svg/lib/types";
 
 interface Page {
     original: string[],
@@ -13,9 +17,8 @@ export class OCRControlElement {
     private translateButton: HTMLButtonElement;
     private nextPageButton: HTMLButtonElement;
     private lastPageButton: HTMLButtonElement;
-    private importButton: HTMLButtonElement; // 📤
-    private exportButton: HTMLButtonElement; // 📥
-    private clearButton: HTMLButtonElement;  // 🗑
+    private importButton: HTMLButtonElement;
+    private exportButton: HTMLButtonElement;
     private lastKnownQueue: number = 0;
 
     private pages: Page[] = [{
@@ -29,15 +32,9 @@ export class OCRControlElement {
         return this.pages[this.pageIndex];
     }
 
-
-    constructor(parent: HTMLElement, captureFunction, translateFunction) {
-        this.controlDiv = document.createElement('div');
-        this.controlDiv.classList.add("control-window");
-        parent.append(this.controlDiv);
-        
-        //Top row buttons
+    private makeTopButtons(captureFunction) {
         const buttonContainer = document.createElement('div');
-        this.controlDiv.append(buttonContainer);
+        buttonContainer.classList.add("button-row")
 
         // Last Page Button
         this.lastPageButton = document.createElement('button'); 
@@ -54,30 +51,28 @@ export class OCRControlElement {
             captureFunction(e)
         }
         buttonContainer.append(this.startOCRButton);
-        
-        // New Page Button
+
+        // Next Page Button
         this.nextPageButton = document.createElement('button'); 
         this.nextPageButton.innerText = '+';
         this.nextPageButton.onclick = () => this.navigateForward()
         this.nextPageButton.classList.add("hidden");
         buttonContainer.append(this.nextPageButton); 
+
+        return buttonContainer;
+    }
+
+    private makeBottomButtons(translateFunction) {
+        const bottomButtonContainer = document.createElement("div");
+        bottomButtonContainer.classList.add("button-row")
         
-        this.updateOCRButton();
-        
-        // Previous capture results
-        this.messageListDiv = document.createElement('div');
-        this.messageListDiv.classList.add("ocr-history", "gone");
-        this.controlDiv.append(this.messageListDiv);
-        
-        // OCR History
-        this.messageList = document.createElement('ul');
-        this.messageList.addEventListener("mouseup", ev => {
-            const selectedText = window.getSelection().toString();
-            if(selectedText.length > 0) {
-                navigator.clipboard.writeText(selectedText);
-            }
-        })
-        this.messageListDiv.append(this.messageList);
+        //Import Button - Not used, but kept as spacer
+        this.importButton = document.createElement('button');
+        this.importButton.classList.add("icon-button", "hidden");
+        this.importButton.title = "Import";
+        const importIcon = this.loadIcon(UploadOutlined) as SVGElement;
+        this.importButton.appendChild(importIcon);
+        bottomButtonContainer.append(this.importButton);
 
         // Request Translation Button
         this.translateButton = document.createElement('button');
@@ -90,9 +85,64 @@ export class OCRControlElement {
             this.translateButton.innerText = "Processing..."
             translateFunction(this.page.original);
         }
-        this.messageListDiv.append(this.translateButton);  
+        bottomButtonContainer.append(this.translateButton);
+        
+        //Export Button
+        this.exportButton = document.createElement('button');
+        this.exportButton.classList.add("icon-button");
+        this.exportButton.title = "Export"
+        const exportIcon = this.loadIcon(DownloadOutlined) as SVGElement;
+        this.exportButton.appendChild(exportIcon);
+        bottomButtonContainer.append(this.exportButton);
 
+        return bottomButtonContainer;
+    }
+
+    private makeMessageList() {
+        // Previous capture results
+        this.messageListDiv = document.createElement('div');
+        this.messageListDiv.classList.add("ocr-history", "gone");
+        
+        // OCR History
+        this.messageList = document.createElement('ul');
+        this.messageList.addEventListener("mouseup", ev => {
+            const selectedText = window.getSelection().toString();
+            if(selectedText.length > 0) {
+                navigator.clipboard.writeText(selectedText);
+            }
+        })
+        this.messageListDiv.append(this.messageList);
+    }
+
+
+    constructor(parent: HTMLElement, captureFunction, translateFunction) {
+        this.controlDiv = document.createElement('div');
+        this.controlDiv.classList.add("control-window");
+        parent.append(this.controlDiv);
+        
+        //Top buttons (navigation + capture)
+        const topButtons = this.makeTopButtons(captureFunction);
+        this.controlDiv.append(topButtons);        
+        
+        //Center (capture history)
+        this.makeMessageList()
+        this.controlDiv.append(this.messageListDiv);
+        
+        //Bottom (translation, export)
+        const bottomButtons = this.makeBottomButtons(translateFunction)
+        this.messageListDiv.append(bottomButtons);
+        
+        this.updateOCRButton();
         this.controlDiv.addEventListener('mousedown', movableElement(this.controlDiv, [this.messageList]));
+    }
+
+    private loadIcon(icon: IconDefinition) : Node {
+        var template = document.createElement('template');
+        const htmlString = renderIconDefinitionToSVGElement(icon, {
+            extraSVGAttrs: { fill: 'white ' }
+        })
+        template.innerHTML = htmlString.trim()
+        return template.content.firstChild
     }
 
     private updateMessageList() {
@@ -146,7 +196,7 @@ export class OCRControlElement {
             this.startOCRButton.title = `There are ${this.lastKnownQueue} images still processing.`
         } else {
             this.startOCRButton.innerText = 'New Capture'
-            this.startOCRButton.title = null
+            this.startOCRButton.removeAttribute("title")
         }
     }
 
