@@ -157,6 +157,31 @@ chrome.runtime.onMessage.addListener(
                 }
             }
             chrome.tabs.sendMessage(sender.tab.id, response);
+        } else if (message.type === 'AnkiRequest') {
+            const request = message as AnkiRequest
+            const data = JSON.stringify({
+                "action":"addNote",
+                "version":23, 
+                "params": { 
+                    "note": { 
+                        "deckName":"Default", 
+                        "modelName":"Basic", 
+                        "fields": {
+                            "Front": request.payload.front,
+                            "Back": request.payload.back
+                        }
+                    }
+                }
+            })
+            fetch("http://localhost:8765",{
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: data
+            }).catch(error => {
+                console.error(error)
+            })
         }
     }
 )

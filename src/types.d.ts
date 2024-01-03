@@ -12,6 +12,14 @@ interface TranslationResponse {
     }
 }
 
+interface AnkiRequest { 
+    type: 'AnkiRequest',
+    payload: {
+        front: string,
+        back: string
+    }
+}
+
 
 interface OCRCompleteRequest {
     type: 'OCRComplete',
@@ -45,7 +53,8 @@ interface EnableOCRRequest {
 type Message = TranslationRequest | TranslationResponse | 
     OCRCompleteRequest | ProcessBackendRequest | 
     OCRStartRequest | InitializeOCRRequest |
-    DisableOCRRequest | EnableOCRRequest
+    DisableOCRRequest | EnableOCRRequest |
+    AnkiRequest
 
 // For capturing an area on the screen
 interface OCRCaptureParameters {
@@ -88,4 +97,10 @@ interface OCRConfig {
     startupSampleURL: string,
     startupSampleExpectation: string
     skipStartupSample?: boolean;
+}
+
+interface OCRBridge {
+    newCapture: (ev: MouseEvent) => void,
+    newTranslation: (messages: string[]) => void
+    sendToAnki: (front: string, back: string) => void
 }

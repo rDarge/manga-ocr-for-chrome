@@ -10,6 +10,7 @@ interface Page {
 }
 
 export class OCRControlElement { 
+    private bridge: OCRBridge;
     private controlDiv: HTMLDivElement;
     private startOCRButton: HTMLButtonElement;
     private messageListDiv: HTMLDivElement;
@@ -115,13 +116,14 @@ export class OCRControlElement {
     }
 
 
-    constructor(parent: HTMLElement, captureFunction, translateFunction) {
+    constructor(parent: HTMLElement, bridge: OCRBridge) {
+        this.bridge = bridge
         this.controlDiv = document.createElement('div');
         this.controlDiv.classList.add("control-window");
         parent.append(this.controlDiv);
         
         //Top buttons (navigation + capture)
-        const topButtons = this.makeTopButtons(captureFunction);
+        const topButtons = this.makeTopButtons(bridge.newCapture);
         this.controlDiv.append(topButtons);        
         
         //Center (capture history)
@@ -129,7 +131,7 @@ export class OCRControlElement {
         this.controlDiv.append(this.messageListDiv);
         
         //Bottom (translation, export)
-        const bottomButtons = this.makeBottomButtons(translateFunction)
+        const bottomButtons = this.makeBottomButtons(bridge.newTranslation)
         this.messageListDiv.append(bottomButtons);
         
         this.updateOCRButton();
@@ -245,16 +247,14 @@ export class OCRControlElement {
                     //Expand message to allow user to look up details
                     const expandedDiv = document.createElement("div")
                     resultElement.appendChild(expandedDiv)
-
-                    const translateButton = document.createElement("button")
-                    translateButton.classList.add("small")
-                    translateButton.innerText = "Translate"
-                    expandedDiv.appendChild(translateButton)
                     
-                    const vocabButton = document.createElement("button")
-                    vocabButton.classList.add("small")
-                    vocabButton.innerText = "Vocab"
-                    expandedDiv.appendChild(vocabButton)
+                    const ankiButton = document.createElement("button")
+                    ankiButton.classList.add("small")
+                    ankiButton.innerText = "Send to Anki"
+                    ankiButton.addEventListener("click", (ev) => {
+                        this.bridge.sendToAnki(text, resultElement.title)
+                    })
+                    expandedDiv.appendChild(ankiButton)
                     
                     resultElement.classList.add("expanded")
                 }
@@ -282,9 +282,9 @@ export class OCRControlElement {
                         const target = ev2.target as HTMLElement
                         if(this.messageList.contains(target) && target != resultElement) {
                             //Merge OCR Result
-                            const source = resultElement.textContent;
+                            const source = text;
                             const sourceIndex = this.page.original.indexOf(source);
-                            const otherIndex = this.page.original.indexOf(target.textContent);
+                            const otherIndex = this.page.original.indexOf(target.childNodes[0].textContent); //Look at the first child node since it may be expanded
                             this.page.original[otherIndex] += source;
                             this.page.original.splice(sourceIndex, 1)
                             // target.textContent += resultElement.textContent;

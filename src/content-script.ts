@@ -65,29 +65,45 @@ const startCapture = async (points: OCRCaptureParameters) => {
     chrome.runtime.sendMessage(message);
 }
 
-//Called to create a new area for OCR
-const newCapture = (ev: MouseEvent) => {
-    //Remove control and debug elements during screenshot
-    controller.hide();
-    debugWindow.hide();
-    pluginDiv.classList.add("ocr-on-top")
-    createCaptureCanvas(pluginDiv, (parameters) => {
-        pluginDiv.classList.remove("ocr-on-top")
-        startCapture(parameters);
-    }, () => {
-        pluginDiv.classList.remove("ocr-on-top")
-        controller.cancelCaptureResult();
-    })
+
+const bridge: OCRBridge = {
+
+    //Called to create a new area for OCR
+    newCapture: (ev: MouseEvent) => {
+        //Remove control and debug elements during screenshot
+        controller.hide();
+        debugWindow.hide();
+        pluginDiv.classList.add("ocr-on-top")
+        createCaptureCanvas(pluginDiv, (parameters) => {
+            pluginDiv.classList.remove("ocr-on-top")
+            startCapture(parameters);
+        }, () => {
+            pluginDiv.classList.remove("ocr-on-top")
+            controller.cancelCaptureResult();
+        })
+    },
+
+    newTranslation: (messages: string[]) => {
+        //Pass request to service-worker for processing
+        const message: TranslationRequest = {
+            type: 'TranslationRequest',
+            payload: { messages }
+        };
+        chrome.runtime.sendMessage(message);
+    },
+
+    sendToAnki: (front: string, back: string) => {
+        const message: AnkiRequest = {
+            type: 'AnkiRequest',
+            payload: {
+                front, back
+            }
+        }
+        chrome.runtime.sendMessage(message);
+    }
 }
 
-const newTranslation = (messages: string[]) => {
-    //Pass request to service-worker for processing
-    const message: TranslationRequest = {
-        type: 'TranslationRequest',
-        payload: { messages }
-    };
-    chrome.runtime.sendMessage(message);
-}
+
 
 const toast = (message: string) => {
     const div = document.createElement("div");
@@ -105,6 +121,6 @@ pluginDiv.classList.add("ocr-extension-root");
 document.body.append(pluginDiv);
 
 // Add UI elements
-const controller = new OCRControlElement(pluginDiv, newCapture, newTranslation);
+const controller = new OCRControlElement(pluginDiv, bridge);
 const debugWindow = new OCRDebugElement(pluginDiv);
 
