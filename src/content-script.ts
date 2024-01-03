@@ -24,7 +24,7 @@ chrome.runtime.onMessage.addListener(async function(request, sender, sendRespons
         //Display translated results 
         console.log(response.payload.list)
         // TODO pass a proper reference to the element so the vocabulary can be dropped in below the japanese text but before the vocab/anki buttons
-        // controller.addVocab(response.payload.list);
+        controller.addVocab(response.payload.list, response.payload.index);
     } else if (response.type === 'EnableOCR') {
         controller.show();
     } else if (response.type === 'DisableOCR') {
@@ -107,11 +107,12 @@ const bridge: OCRBridge = {
         chrome.runtime.sendMessage(message);
     },
 
-    getVocab: (text: string) => {
+    getVocab: (text: string, index: number) => {
         const message: VocabRequest = {
             type: 'VocabRequest',
             payload: {
-                text
+                text,
+                index
             }
         }
         chrome.runtime.sendMessage(message);

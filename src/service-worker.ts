@@ -186,7 +186,7 @@ chrome.runtime.onMessage.addListener(
                         }
                     }
                 }
-            })
+            }).replaceAll('\\n','<br>') // Replace newlines with breaks or anki will change them to spaces
             fetch("http://localhost:8765",{
                 method: 'POST',
                 headers: {
@@ -213,7 +213,8 @@ chrome.runtime.onMessage.addListener(
             const response: VocabResponse = {
                 type: 'VocabResponse',
                 payload: {
-                    list: result
+                    list: result,
+                    index: message.payload.index
                 }
             }
             chrome.tabs.sendMessage(sender.tab.id, response);

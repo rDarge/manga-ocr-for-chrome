@@ -24,6 +24,7 @@ interface VocabRequest {
     type: 'VocabRequest',
     payload: {
         text: string,
+        index: number
     }
 }
 
@@ -31,6 +32,7 @@ interface VocabResponse {
     type: 'VocabResponse',
     payload: {
         list: string,
+        index: number
     }
 }
 
@@ -117,5 +119,5 @@ interface OCRBridge {
     newCapture: (ev: MouseEvent) => void,
     newTranslation: (messages: string[]) => void
     sendToAnki: (front: string, back: string) => void
-    getVocab: (text: string) => void
+    getVocab: (text: string, index: number) => void
 }

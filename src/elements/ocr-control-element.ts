@@ -6,7 +6,7 @@ import { IconDefinition } from "@ant-design/icons-svg/lib/types";
 
 interface Page {
     original: string[],
-    translation: string[],
+    translation: string[]
 }
 
 export class OCRControlElement { 
@@ -253,7 +253,7 @@ export class OCRControlElement {
                     vocabButton.classList.add("small")
                     vocabButton.innerText = "Vocab"
                     vocabButton.addEventListener("click", (ev) => {
-                        this.bridge.getVocab(text)
+                        this.bridge.getVocab(text, index)
                         vocabButton.innerText = "Thinking..."
                         vocabButton.disabled = true
                         setTimeout(() => {
@@ -350,6 +350,17 @@ export class OCRControlElement {
         this.translateButton.disabled = false
         this.translateButton.innerText = "Translate"
         this.translateButton.classList.remove("disabled")
+    }
+
+    public addVocab(vocab: string, index: number) {
+        const element = this.messageList.childNodes[index] as HTMLLIElement
+        if(this.page.translation[index]) {
+            this.page.translation[index] += '\n' + vocab
+        } else {
+            this.page.translation[index] = vocab
+        }
+        
+        element.title = this.page.translation[index]
     }
 
     public addPage() {
