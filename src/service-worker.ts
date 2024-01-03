@@ -5,7 +5,7 @@ const openai = new OpenAI({
     apiKey: openai_api_key
 });
 
-//TODO: Parameterize this and builld interface for user to tinker and provide additional context
+//TODO: Parameterize this and build interface for user to tinker and provide additional context
 const prompt_prefix = `You are a professional translation engine for translating Japanese to English.
 Your task is to translate the following excerpts from a Manga.
 If you are ever unsure of how to translate something, leave it as Japanese.
@@ -16,6 +16,20 @@ If you are ever unsure of how to translate something, leave it as Japanese.
 const prompt_suffix = `
 
 # Translated Text #
+`
+
+const vocab_prefix = `You are a professional japanese teacher fluent in Japanese and English.
+Your task is to create a list of vocabulary for students based on the passages they provide you.
+Your vocab list should have the original word accompanied by the kana decomposition and a definition in english.
+If you are ever unsure of how to translate something, omit it.
+
+
+# Passage #
+`
+
+const vocab_suffix = `
+
+# Vocabulary #
 `
 
 const DEFAULT_CONFIG: OCRConfig = {
@@ -182,6 +196,27 @@ chrome.runtime.onMessage.addListener(
             }).catch(error => {
                 console.error(error)
             })
+        } else if (message.type === 'VocabRequest') {
+            console.log("attempting to query openai for vocabulary");
+            const text = message.payload.text
+            const content = vocab_prefix + text + vocab_suffix;
+
+            const completion = await openai.chat.completions.create({
+                messages: [{ role: 'user', content }],
+                model: 'gpt-3.5-turbo',
+            });
+            console.log("Full prompt and response: ", content, completion);
+            const result = completion.choices[0].message.content;
+            console.log("First choice: ", result);
+
+            //Send translation response back
+            const response: VocabResponse = {
+                type: 'VocabResponse',
+                payload: {
+                    list: result
+                }
+            }
+            chrome.tabs.sendMessage(sender.tab.id, response);
         }
     }
 )

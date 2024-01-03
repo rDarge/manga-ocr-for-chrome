@@ -152,7 +152,7 @@ export class OCRControlElement {
         this.messageList.innerHTML = '';
 
         for(let x = 0; x < page.original.length; x++) {
-            const message = this.createLi(page.original[x])
+            const message = this.createLi(x)
 
             if(x < page.translation.length) {
                 const tip = page.translation[x];
@@ -216,7 +216,8 @@ export class OCRControlElement {
         this.show()
     }
 
-    public createLi(text: string): HTMLLIElement {
+    public createLi(index: number): HTMLLIElement {
+        const text = this.page.original[index]
         const resultElement = document.createElement("li");
         resultElement.textContent = text;        
         resultElement.addEventListener("mouseup", ev => {
@@ -247,12 +248,33 @@ export class OCRControlElement {
                     //Expand message to allow user to look up details
                     const expandedDiv = document.createElement("div")
                     resultElement.appendChild(expandedDiv)
+
+                    const vocabButton = document.createElement("button")
+                    vocabButton.classList.add("small")
+                    vocabButton.innerText = "Vocab"
+                    vocabButton.addEventListener("click", (ev) => {
+                        this.bridge.getVocab(text)
+                        vocabButton.innerText = "Thinking..."
+                        vocabButton.disabled = true
+                        setTimeout(() => {
+                            vocabButton.innerText = "Vocab"
+                            vocabButton.disabled = true
+                        }, 2000)
+                    })
+                    expandedDiv.appendChild(vocabButton)
                     
                     const ankiButton = document.createElement("button")
                     ankiButton.classList.add("small")
                     ankiButton.innerText = "Send to Anki"
                     ankiButton.addEventListener("click", (ev) => {
                         this.bridge.sendToAnki(text, resultElement.title)
+                        ankiButton.innerText = "Sent!"
+                        ankiButton.disabled = true
+                        setTimeout(() => {
+                            //TODO Define "cooldownbutton type to encapsulate behavior"
+                            ankiButton.innerText = "Send to Anki"
+                            ankiButton.disabled = false
+                        }, 2000)
                     })
                     expandedDiv.appendChild(ankiButton)
                     
@@ -310,10 +332,11 @@ export class OCRControlElement {
     }
 
     public addCaptureResult(result: string) {
-        this.pages[this.pageIndex].original.push(result);
+        const original = this.pages[this.pageIndex].original
+        original.push(result);
         const resultElement = document.createElement("li");
         resultElement.textContent = result;        
-        this.messageList.append(this.createLi(result));
+        this.messageList.append(this.createLi(original.length-1));
         this.messageListDiv.classList.remove("gone");
         this.nextPageButton.classList.remove("hidden");
 

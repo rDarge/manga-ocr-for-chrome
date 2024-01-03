@@ -20,6 +20,11 @@ chrome.runtime.onMessage.addListener(async function(request, sender, sendRespons
     } else if (response.type === 'TranslationResponse') {
         //Display translated results 
         controller.addTranslationResult(response.payload.messages);
+    } else if (response.type === 'VocabResponse') {
+        //Display translated results 
+        console.log(response.payload.list)
+        // TODO pass a proper reference to the element so the vocabulary can be dropped in below the japanese text but before the vocab/anki buttons
+        // controller.addVocab(response.payload.list);
     } else if (response.type === 'EnableOCR') {
         controller.show();
     } else if (response.type === 'DisableOCR') {
@@ -97,6 +102,16 @@ const bridge: OCRBridge = {
             type: 'AnkiRequest',
             payload: {
                 front, back
+            }
+        }
+        chrome.runtime.sendMessage(message);
+    },
+
+    getVocab: (text: string) => {
+        const message: VocabRequest = {
+            type: 'VocabRequest',
+            payload: {
+                text
             }
         }
         chrome.runtime.sendMessage(message);

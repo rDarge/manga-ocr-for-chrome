@@ -20,6 +20,20 @@ interface AnkiRequest {
     }
 }
 
+interface VocabRequest { 
+    type: 'VocabRequest',
+    payload: {
+        text: string,
+    }
+}
+
+interface VocabResponse { 
+    type: 'VocabResponse',
+    payload: {
+        list: string,
+    }
+}
+
 
 interface OCRCompleteRequest {
     type: 'OCRComplete',
@@ -54,7 +68,7 @@ type Message = TranslationRequest | TranslationResponse |
     OCRCompleteRequest | ProcessBackendRequest | 
     OCRStartRequest | InitializeOCRRequest |
     DisableOCRRequest | EnableOCRRequest |
-    AnkiRequest
+    AnkiRequest | VocabRequest | VocabResponse
 
 // For capturing an area on the screen
 interface OCRCaptureParameters {
@@ -103,4 +117,5 @@ interface OCRBridge {
     newCapture: (ev: MouseEvent) => void,
     newTranslation: (messages: string[]) => void
     sendToAnki: (front: string, back: string) => void
+    getVocab: (text: string) => void
 }
