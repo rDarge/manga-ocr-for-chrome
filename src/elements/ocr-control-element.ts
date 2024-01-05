@@ -217,9 +217,16 @@ export class OCRControlElement {
     }
 
     public createLi(index: number): HTMLLIElement {
-        const text = this.page.original[index]
-        const resultElement = document.createElement("li");
-        resultElement.textContent = text;        
+        //Local state to manage element state until it's redrawn
+        let text = this.page.original[index]
+        let translation = this.page.translation.length >= index ? this.page.translation[index] : ""
+        
+        const resultElement = document.createElement("li")
+
+        const textElement = document.createElement("p")
+        textElement.textContent = text;
+        resultElement.appendChild(textElement)
+
         resultElement.addEventListener("mouseup", ev => {
             if(window.getSelection().toString().length == 0) {
                 navigator.clipboard.writeText(text);
@@ -249,6 +256,70 @@ export class OCRControlElement {
                     const expandedDiv = document.createElement("div")
                     resultElement.appendChild(expandedDiv)
 
+                    const editButton = document.createElement("button")
+                    editButton.classList.add("small")
+                    editButton.innerText = "Edit"
+                    editButton.addEventListener("click", (ev) => {
+                        const originalText = textElement.textContent
+                        const originalTranslation = resultElement.title
+
+                        //Hide expanded div
+                        expandedDiv.style.display = "none"
+                        textElement.innerText = ""
+
+                        //Editable Text
+                        const editableText = document.createElement("textarea")
+                        editableText.textContent = originalText
+                        editableText.addEventListener("change", (ev) => {
+                            text = (ev.target as HTMLTextAreaElement).value
+                        })
+                        
+                        //Editable Translation
+                        const editableTranslation = document.createElement("textarea")
+                        editableTranslation.textContent = originalTranslation
+                        editableTranslation.addEventListener("change", (ev) => {
+                            translation = (ev.target as HTMLTextAreaElement).value
+                        })
+
+                        //Apply button
+                        const applyButton = document.createElement("button")
+                        applyButton.textContent = "Apply"
+                        applyButton.addEventListener("click", (ev) => {
+                            editingDiv.remove()
+                            expandedDiv.style.display = null
+                            textElement.textContent = text
+                            this.page.original[index] = text
+                            if(translation) {
+                                resultElement.title = translation
+                                this.page.translation[index] = translation
+                            }
+                        })
+                        
+                        //Cancel button
+                        const cancelButton = document.createElement("button")
+                        cancelButton.textContent = "Cancel"
+                        cancelButton.addEventListener("click", (ev) => {
+                            editingDiv.remove()
+                            expandedDiv.style.display = null
+                            textElement.textContent = originalText
+                            text = originalText
+                            translation = originalTranslation
+                        })
+
+                        //ButtonDiv
+                        const buttonDiv = document.createElement("div")
+                        buttonDiv.appendChild(applyButton)
+                        buttonDiv.appendChild(cancelButton)
+
+                        //Create new "editing" div
+                        const editingDiv = document.createElement("div")
+                        editingDiv.appendChild(editableText)
+                        editingDiv.appendChild(editableTranslation)
+                        editingDiv.appendChild(buttonDiv)
+                        resultElement.appendChild(editingDiv)
+                    })
+                    expandedDiv.appendChild(editButton)
+
                     const vocabButton = document.createElement("button")
                     vocabButton.classList.add("small")
                     vocabButton.innerText = "Vocab"
@@ -258,7 +329,7 @@ export class OCRControlElement {
                         vocabButton.disabled = true
                         setTimeout(() => {
                             vocabButton.innerText = "Vocab"
-                            vocabButton.disabled = true
+                            vocabButton.disabled = false
                         }, 2000)
                     })
                     expandedDiv.appendChild(vocabButton)
@@ -272,7 +343,7 @@ export class OCRControlElement {
                         ankiButton.disabled = true
                         setTimeout(() => {
                             //TODO Define "cooldownbutton type to encapsulate behavior"
-                            ankiButton.innerText = "Send to Anki"
+                            ankiButton.innerText = "Send again?"
                             ankiButton.disabled = false
                         }, 2000)
                     })
@@ -301,7 +372,13 @@ export class OCRControlElement {
                     console.log("Done with right click event")
                     var remove = false;
                     if(ev2.target instanceof HTMLElement) {
-                        const target = ev2.target as HTMLElement
+                        let target = ev2.target
+                        if (target instanceof HTMLParagraphElement) {
+                            target = target.parentElement
+                        } else {
+                            target = target as HTMLElement
+                        }
+
                         if(this.messageList.contains(target) && target != resultElement) {
                             //Merge OCR Result
                             const source = text;
