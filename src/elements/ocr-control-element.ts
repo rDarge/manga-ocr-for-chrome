@@ -341,8 +341,9 @@ export class OCRControlElement {
                         this.bridge.sendToAnki(text, resultElement.title)
                         ankiButton.innerText = "Sent!"
                         ankiButton.disabled = true
+                        resultElement.classList.add("sent-to-anki")
                         setTimeout(() => {
-                            //TODO Define "cooldownbutton type to encapsulate behavior"
+                            //TODO Define "cooldown" button type to encapsulate behavior"
                             ankiButton.innerText = "Send again?"
                             ankiButton.disabled = false
                         }, 2000)

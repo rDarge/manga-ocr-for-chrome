@@ -16,7 +16,8 @@ interface AnkiRequest {
     type: 'AnkiRequest',
     payload: {
         front: string,
-        back: string
+        back: string,
+        tags: string[]
     }
 }
 

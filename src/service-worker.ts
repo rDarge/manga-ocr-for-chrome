@@ -183,7 +183,8 @@ chrome.runtime.onMessage.addListener(
                         "fields": {
                             "Front": request.payload.front,
                             "Back": request.payload.back
-                        }
+                        },
+                        "tags": request.payload.tags,
                     }
                 }
             }).replaceAll('\\n','<br>') // Replace newlines with breaks or anki will change them to spaces

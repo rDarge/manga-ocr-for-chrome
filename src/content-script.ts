@@ -98,10 +98,18 @@ const bridge: OCRBridge = {
     },
 
     sendToAnki: (front: string, back: string) => {
+        const date = new Date()
+        const dateTags = "date_added::" + date.getFullYear() + "::" + date.getMonth() + "::" + date.getDay()
         const message: AnkiRequest = {
             type: 'AnkiRequest',
             payload: {
-                front, back
+                front, 
+                back, 
+                tags: [
+                    document.URL,
+                    document.location.origin,
+                    dateTags
+                ]
             }
         }
         chrome.runtime.sendMessage(message);
