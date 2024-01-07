@@ -98,12 +98,13 @@ const bridge: OCRBridge = {
         chrome.runtime.sendMessage(message);
     },
 
-    translateOne: (message: string, index: number) => {
+    translateOne: (message: string, context: string, index: number) => {
         //Pass request to service-worker for processing
-        const request: SingleRequest = {
-            type: 'TranslateOne',
+        const request: TranslateOneRequest = {
+            type: 'TranslateOneRequest',
             payload: { 
                 text: message,
+                context,
                 index
              }
         };
@@ -129,7 +130,7 @@ const bridge: OCRBridge = {
     },
 
     getVocab: (text: string, index: number) => {
-        const message: SingleRequest = {
+        const message: VocabRequest = {
             type: 'VocabRequest',
             payload: {
                 text,

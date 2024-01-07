@@ -6,32 +6,47 @@ const openai = new OpenAI({
 });
 
 //TODO: Parameterize this and build interface for user to tinker and provide additional context
-const prompt_prefix = `You are a professional translation engine for translating Japanese to English.
-Your task is to translate the following excerpts from a Manga.
-Each line of input should have a corresponding translated line. Do not combine lines.
-If you are ever unsure of how to translate something, leave it as Japanese.
+function translatePrompt(text: string) {
+    return `You are a professional translation engine for translating Japanese to English.
+    Your task is to translate the following excerpts from a Manga.
+    Each line of input should have a corresponding translated line. Do not combine lines.
+    If you are ever unsure of how to translate something, leave it as Japanese.
+    
+    # Manga Text #
+    ${text}
+    
+    # Translated Text #
+    `
+}
 
-# Manga Text #
-`
+function translateOnePrompt(text: string, context: string) {
+    return `You are a professional translation engine for translating Japanese to English.
 
-const prompt_suffix = `
+    Here is the full context of the passage you are translating:
+    ${context}
+    
+    Your task is to translate the following selected line from a Manga.
+    If you are ever unsure of how to translate something, leave it as Japanese.
+    
+    # Selected Line #
+    ${text}
+    
+    # Translated Line #
+    `
+}
 
-# Translated Text #
-`
-
-const vocab_prefix = `You are a professional japanese teacher fluent in Japanese and English.
-Your task is to create a list of vocabulary for students based on the passages they provide you.
-Your vocab list should have the original word accompanied by the kana decomposition and a definition in english.
-If you are ever unsure of how to translate something, omit it.
-
-
-# Passage #
-`
-
-const vocab_suffix = `
-
-# Vocabulary #
-`
+function vocabPrompt(text: string) {
+    return `You are a professional japanese teacher fluent in Japanese and English.
+    Your task is to create a list of vocabulary for students based on the passages they provide you.
+    Your vocab list should have the original word accompanied by the kana decomposition and a definition in english.
+    If you are ever unsure of how to translate something, omit it.
+    
+    # Passage #
+    ${text}
+    
+    # Vocabulary #
+    `
+}
 
 const DEFAULT_CONFIG: OCRConfig = {
     vocabURL: chrome.runtime.getURL('vocab.txt'),
@@ -154,7 +169,7 @@ chrome.runtime.onMessage.addListener(
         } else if (message.type === 'TranslationRequest') {
             console.log("attempting to query openai for translation");
             const messages = message.payload.messages as string[];
-            const content = prompt_prefix + messages.join('\n') + prompt_suffix;
+            const content = translatePrompt(messages.join('\n'));
 
             const completion = await openai.chat.completions.create({
                 messages: [{ role: 'user', content }],
@@ -201,7 +216,7 @@ chrome.runtime.onMessage.addListener(
         } else if (message.type === 'VocabRequest') {
             console.log("attempting to query openai for vocabulary");
             const text = message.payload.text
-            const content = vocab_prefix + text + vocab_suffix;
+            const content = vocabPrompt(text);
 
             const completion = await openai.chat.completions.create({
                 messages: [{ role: 'user', content }],
@@ -220,10 +235,11 @@ chrome.runtime.onMessage.addListener(
                 }
             }
             chrome.tabs.sendMessage(sender.tab.id, response);
-        } else if (message.type === 'TranslateOne') {
+        } else if (message.type === 'TranslateOneRequest') {
             console.log("attempting to query openai for vocabulary");
             const text = message.payload.text
-            const content = prompt_prefix + text + prompt_suffix;
+            const context = message.payload.context
+            const content = translateOnePrompt(text, context);
 
             const completion = await openai.chat.completions.create({
                 messages: [{ role: 'user', content }],

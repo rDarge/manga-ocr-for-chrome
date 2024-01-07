@@ -260,7 +260,8 @@ export class OCRControlElement {
                     translateButton.classList.add("small")
                     translateButton.innerText = "Translate"
                     translateButton.addEventListener("click", (ev) => {
-                        this.bridge.translateOne(text, index)
+                        const context = this.page.original.join("\n");
+                        this.bridge.translateOne(text, context, index)
                         translateButton.innerText = "Working..."
                         translateButton.disabled = true
                         setTimeout(() => {
