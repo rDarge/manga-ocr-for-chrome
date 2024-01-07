@@ -21,10 +21,11 @@ chrome.runtime.onMessage.addListener(async function(request, sender, sendRespons
         //Display translated results 
         controller.addTranslationResult(response.payload.messages);
     } else if (response.type === 'VocabResponse') {
-        //Display translated results 
-        console.log(response.payload.list)
-        // TODO pass a proper reference to the element so the vocabulary can be dropped in below the japanese text but before the vocab/anki buttons
-        controller.addVocab(response.payload.list, response.payload.index);
+        console.log(response.payload.result)
+        controller.addVocab(response.payload.result, response.payload.index);
+    } else if (response.type === 'TranslateOneResponse') {
+        console.log(response.payload.result)
+        controller.addSingleTranslationResult(response.payload.result, response.payload.index);
     } else if (response.type === 'EnableOCR') {
         controller.show();
     } else if (response.type === 'DisableOCR') {
@@ -97,6 +98,18 @@ const bridge: OCRBridge = {
         chrome.runtime.sendMessage(message);
     },
 
+    translateOne: (message: string, index: number) => {
+        //Pass request to service-worker for processing
+        const request: SingleRequest = {
+            type: 'TranslateOne',
+            payload: { 
+                text: message,
+                index
+             }
+        };
+        chrome.runtime.sendMessage(request);
+    },
+
     sendToAnki: (front: string, back: string) => {
         const date = new Date()
         const dateTags = "date_added::" + date.getFullYear() + "::" + date.getMonth() + "::" + date.getDay()
@@ -116,7 +129,7 @@ const bridge: OCRBridge = {
     },
 
     getVocab: (text: string, index: number) => {
-        const message: VocabRequest = {
+        const message: SingleRequest = {
             type: 'VocabRequest',
             payload: {
                 text,

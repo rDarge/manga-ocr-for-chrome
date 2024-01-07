@@ -8,6 +8,7 @@ const openai = new OpenAI({
 //TODO: Parameterize this and build interface for user to tinker and provide additional context
 const prompt_prefix = `You are a professional translation engine for translating Japanese to English.
 Your task is to translate the following excerpts from a Manga.
+Each line of input should have a corresponding translated line. Do not combine lines.
 If you are ever unsure of how to translate something, leave it as Japanese.
 
 # Manga Text #
@@ -211,10 +212,32 @@ chrome.runtime.onMessage.addListener(
             console.log("First choice: ", result);
 
             //Send translation response back
-            const response: VocabResponse = {
+            const response: SingleResponse = {
                 type: 'VocabResponse',
                 payload: {
-                    list: result,
+                    result,
+                    index: message.payload.index
+                }
+            }
+            chrome.tabs.sendMessage(sender.tab.id, response);
+        } else if (message.type === 'TranslateOne') {
+            console.log("attempting to query openai for vocabulary");
+            const text = message.payload.text
+            const content = prompt_prefix + text + prompt_suffix;
+
+            const completion = await openai.chat.completions.create({
+                messages: [{ role: 'user', content }],
+                model: 'gpt-3.5-turbo',
+            });
+            console.log("Full prompt and response: ", content, completion);
+            const result = completion.choices[0].message.content;
+            console.log("First choice: ", result);
+
+            //Send translation response back
+            const response: SingleResponse = {
+                type: 'TranslateOneResponse',
+                payload: {
+                    result,
                     index: message.payload.index
                 }
             }

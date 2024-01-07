@@ -256,6 +256,20 @@ export class OCRControlElement {
                     const expandedDiv = document.createElement("div")
                     resultElement.appendChild(expandedDiv)
 
+                    const translateButton = document.createElement("button")
+                    translateButton.classList.add("small")
+                    translateButton.innerText = "Translate"
+                    translateButton.addEventListener("click", (ev) => {
+                        this.bridge.translateOne(text, index)
+                        translateButton.innerText = "Working..."
+                        translateButton.disabled = true
+                        setTimeout(() => {
+                            translateButton.innerText = "Again"
+                            translateButton.disabled = false
+                        }, 2000)
+                    })
+                    expandedDiv.appendChild(translateButton)
+
                     const editButton = document.createElement("button")
                     editButton.classList.add("small")
                     editButton.innerText = "Edit"
@@ -336,7 +350,7 @@ export class OCRControlElement {
                     
                     const ankiButton = document.createElement("button")
                     ankiButton.classList.add("small")
-                    ankiButton.innerText = "Send to Anki"
+                    ankiButton.innerText = "Anki"
                     ankiButton.addEventListener("click", (ev) => {
                         this.bridge.sendToAnki(text, resultElement.title)
                         ankiButton.innerText = "Sent!"
@@ -360,7 +374,7 @@ export class OCRControlElement {
             }, 500)
 
             //Handle dragging of elements
-            if(this.messageList.childNodes.length > 1) {
+            if(this.messageList.childNodes.length >= 1) {
                 const updatePosition = (mv: MouseEvent) => {
                     resultElement.style.fontStyle = 'italic'
                     resultElement.style.opacity = '50%'
@@ -380,15 +394,20 @@ export class OCRControlElement {
                             target = target as HTMLElement
                         }
 
-                        if(this.messageList.contains(target) && target != resultElement) {
-                            //Merge OCR Result
+                        if(this.messageList.contains(target) && !resultElement.contains(target)) {
+                            //Dragged to another element: Merge OCR Result
                             const source = text;
                             const sourceIndex = this.page.original.indexOf(source);
-                            const otherIndex = this.page.original.indexOf(target.childNodes[0].textContent); //Look at the first child node since it may be expanded
+                            const otherIndex = this.page.original.indexOf(target.childNodes[0].textContent);
                             this.page.original[otherIndex] += source;
                             this.page.original.splice(sourceIndex, 1)
-                            // target.textContent += resultElement.textContent;
                             remove = true;
+                        } else if (!this.controlDiv.contains(target)) {
+                            //Dragged off; remove
+                            const source = text;
+                            const sourceIndex = this.page.original.indexOf(source);
+                            this.page.original.splice(sourceIndex, 1)
+                            remove = true
                         }
                     }
                     if(remove) {
@@ -428,6 +447,12 @@ export class OCRControlElement {
         this.translateButton.disabled = false
         this.translateButton.innerText = "Translate"
         this.translateButton.classList.remove("disabled")
+    }
+
+    public addSingleTranslationResult(message: string, index: number) {
+        this.page.translation[index] = message;
+        const element = this.messageList.childNodes[index] as HTMLLIElement
+        element.title = message
     }
 
     public addVocab(vocab: string, index: number) {
