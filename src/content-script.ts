@@ -26,6 +26,14 @@ chrome.runtime.onMessage.addListener(async function(request, sender, sendRespons
     } else if (response.type === 'TranslateOneResponse') {
         console.log(response.payload.result)
         controller.addSingleTranslationResult(response.payload.result, response.payload.index);
+    } else if (response.type ==='AnkiDeckNamesResponse') {
+        console.log(response.payload);
+        if(response.payload.error) {
+            toast(`Could not connect to Anki: ${response.payload.error}`)
+            controller.failedToConnectToAnki(response.payload.error);
+        } else {
+            controller.connectToAnki(response.payload.names)
+        }
     } else if (response.type === 'EnableOCR') {
         controller.show();
     } else if (response.type === 'DisableOCR') {
@@ -111,12 +119,32 @@ const bridge: OCRBridge = {
         chrome.runtime.sendMessage(request);
     },
 
-    sendToAnki: (front: string, back: string) => {
-        const date = new Date()
-        const dateTags = "date_added::" + date.getFullYear() + "::" + date.getMonth() + "::" + date.getDay()
-        const message: AnkiRequest = {
-            type: 'AnkiRequest',
+    getVocab: (text: string, index: number) => {
+        const message: VocabRequest = {
+            type: 'VocabRequest',
             payload: {
+                text,
+                index
+            }
+        }
+        chrome.runtime.sendMessage(message);
+    },
+
+    connectToAnki: () => {
+        const message: AnkiDeckNamesRequest = {
+            type: 'AnkiDeckNamesRequest',
+            payload: {}
+        }
+        chrome.runtime.sendMessage(message)
+    },
+
+    sendToAnki: (deck: string, front: string, back: string) => {
+        const date = new Date()
+        const dateTags = "date_added::" + date.getFullYear() + "::" + date.getMonth() + "::" + date.getDate()
+        const message: AnkiNewCardRequest = {
+            type: 'AnkiNewCardRequest',
+            payload: {
+                deck,
                 front, 
                 back, 
                 tags: [
@@ -128,17 +156,6 @@ const bridge: OCRBridge = {
         }
         chrome.runtime.sendMessage(message);
     },
-
-    getVocab: (text: string, index: number) => {
-        const message: VocabRequest = {
-            type: 'VocabRequest',
-            payload: {
-                text,
-                index
-            }
-        }
-        chrome.runtime.sendMessage(message);
-    }
 }
 
 

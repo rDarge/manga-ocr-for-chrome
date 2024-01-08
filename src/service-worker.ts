@@ -1,52 +1,9 @@
-import OpenAI from 'openai';
 import { openai_api_key } from './dev-secrets';
+import { AnkiConnect } from './anki';
+import { OpenAIConnect } from './oai';
 
-const openai = new OpenAI({
-    apiKey: openai_api_key
-});
-
-//TODO: Parameterize this and build interface for user to tinker and provide additional context
-function translatePrompt(text: string) {
-    return `You are a professional translation engine for translating Japanese to English.
-    Your task is to translate the following excerpts from a Manga.
-    Each line of input should have a corresponding translated line. Do not combine lines.
-    If you are ever unsure of how to translate something, leave it as Japanese.
-    
-    # Manga Text #
-    ${text}
-    
-    # Translated Text #
-    `
-}
-
-function translateOnePrompt(text: string, context: string) {
-    return `You are a professional translation engine for translating Japanese to English.
-
-    Here is the full context of the passage you are translating:
-    ${context}
-    
-    Your task is to translate the following selected line from a Manga.
-    If you are ever unsure of how to translate something, leave it as Japanese.
-    
-    # Selected Line #
-    ${text}
-    
-    # Translated Line #
-    `
-}
-
-function vocabPrompt(text: string) {
-    return `You are a professional japanese teacher fluent in Japanese and English.
-    Your task is to create a list of vocabulary for students based on the passages they provide you.
-    Your vocab list should have the original word accompanied by the kana decomposition and a definition in english.
-    If you are ever unsure of how to translate something, omit it.
-    
-    # Passage #
-    ${text}
-    
-    # Vocabulary #
-    `
-}
+const ankiConnect = new AnkiConnect("http://localhost:8765")
+const oaiConnect = new OpenAIConnect(openai_api_key)
 
 const DEFAULT_CONFIG: OCRConfig = {
     vocabURL: chrome.runtime.getURL('vocab.txt'),
@@ -169,64 +126,35 @@ chrome.runtime.onMessage.addListener(
         } else if (message.type === 'TranslationRequest') {
             console.log("attempting to query openai for translation");
             const messages = message.payload.messages as string[];
-            const content = translatePrompt(messages.join('\n'));
-
-            const completion = await openai.chat.completions.create({
-                messages: [{ role: 'user', content }],
-                model: 'gpt-3.5-turbo',
-            });
-            console.log("Full prompt and response: ", content, completion);
-            const result = completion.choices[0].message.content;
-            console.log("First choice: ", result);
-
-            //Send translation response back
+            const result = await oaiConnect.translate(messages)
             const response: TranslationResponse = {
                 type: 'TranslationResponse',
                 payload: {
-                    messages: result.split('\n')
+                    messages: result
                 }
             }
             chrome.tabs.sendMessage(sender.tab.id, response);
-        } else if (message.type === 'AnkiRequest') {
-            const request = message as AnkiRequest
-            const data = JSON.stringify({
-                "action":"addNote",
-                "version":23, 
-                "params": { 
-                    "note": { 
-                        "deckName":"Default", 
-                        "modelName":"Basic", 
-                        "fields": {
-                            "Front": request.payload.front,
-                            "Back": request.payload.back
-                        },
-                        "tags": request.payload.tags,
-                    }
+        } else if (message.type === 'AnkiNewCardRequest') {
+            const request = message as AnkiNewCardRequest
+            ankiConnect.sendCard(request.payload)
+        } else if (message.type === 'AnkiDeckNamesRequest') {
+            const response: AnkiDeckNamesResponse = {
+                type: 'AnkiDeckNamesResponse',
+                payload: {
+                    names: [],
+                    error: null
                 }
-            }).replaceAll('\\n','<br>') // Replace newlines with breaks or anki will change them to spaces
-            fetch("http://localhost:8765",{
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: data
-            }).catch(error => {
-                console.error(error)
-            })
+            }
+            try{
+                response.payload.names = await ankiConnect.deckNames()   
+            } catch (error) {
+                response.payload.error = error
+            }
+            chrome.tabs.sendMessage(sender.tab.id, response);
         } else if (message.type === 'VocabRequest') {
             console.log("attempting to query openai for vocabulary");
             const text = message.payload.text
-            const content = vocabPrompt(text);
-
-            const completion = await openai.chat.completions.create({
-                messages: [{ role: 'user', content }],
-                model: 'gpt-3.5-turbo',
-            });
-            console.log("Full prompt and response: ", content, completion);
-            const result = completion.choices[0].message.content;
-            console.log("First choice: ", result);
-
-            //Send translation response back
+            const result = await oaiConnect.vocab(text)
             const response: SingleResponse = {
                 type: 'VocabResponse',
                 payload: {
@@ -239,16 +167,7 @@ chrome.runtime.onMessage.addListener(
             console.log("attempting to query openai for vocabulary");
             const text = message.payload.text
             const context = message.payload.context
-            const content = translateOnePrompt(text, context);
-
-            const completion = await openai.chat.completions.create({
-                messages: [{ role: 'user', content }],
-                model: 'gpt-3.5-turbo',
-            });
-            console.log("Full prompt and response: ", content, completion);
-            const result = completion.choices[0].message.content;
-            console.log("First choice: ", result);
-
+            const result = await oaiConnect.translateOne(text,context)
             //Send translation response back
             const response: SingleResponse = {
                 type: 'TranslateOneResponse',

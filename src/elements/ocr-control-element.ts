@@ -20,6 +20,9 @@ export class OCRControlElement {
     private lastPageButton: HTMLButtonElement;
     private importButton: HTMLButtonElement;
     private exportButton: HTMLButtonElement;
+    private ankiConnectDiv: HTMLDivElement;
+    private ankiConnected: boolean = false;
+    private selectedDeckName: string;
     private lastKnownQueue: number = 0;
 
     private pages: Page[] = [{
@@ -82,7 +85,6 @@ export class OCRControlElement {
         this.translateButton.onclick = () => {
             console.log("Requesting translation for: ", this.page.original.join("\n"));
             this.translateButton.disabled = true
-            this.translateButton.classList.add("disabled")
             this.translateButton.innerText = "Processing..."
             translateFunction(this.page.original);
         }
@@ -96,7 +98,24 @@ export class OCRControlElement {
         this.exportButton.appendChild(exportIcon);
         bottomButtonContainer.append(this.exportButton);
 
-        return bottomButtonContainer;
+        //Connect to Anki
+        this.ankiConnectDiv = document.createElement("div")
+        this.ankiConnectDiv.classList.add("button-row")
+
+        const connectToAnkiButton = document.createElement("button")
+        connectToAnkiButton.innerText = "Connect to Anki"
+        connectToAnkiButton.classList.add("small")
+        connectToAnkiButton.addEventListener("click", (ev)=> {
+            connectToAnkiButton.disabled = true
+            connectToAnkiButton.innerText = "Working..."
+            this.bridge.connectToAnki();
+        })
+        this.ankiConnectDiv.append(connectToAnkiButton)
+
+        const bottomOrganizer = document.createElement("div")
+        bottomOrganizer.appendChild(bottomButtonContainer)
+        bottomOrganizer.appendChild(this.ankiConnectDiv)
+        return bottomOrganizer;
     }
 
     private makeMessageList() {
@@ -244,13 +263,14 @@ export class OCRControlElement {
 
             //Handle quick action
             const quickAction = (ev2: MouseEvent) => {
-                
                 if (resultElement.classList.contains("expanded")) {
-                    //Hide additional details, if any
-                    for(const child of resultElement.getElementsByTagName("div")) {
-                        child.remove()
-                    }
-                    resultElement.classList.remove("expanded")
+                    document.addEventListener("mouseup", (ev) => {
+                        //Hide additional details, if any
+                        for(const child of resultElement.getElementsByTagName("div")) {
+                            child.remove()
+                        }
+                        resultElement.classList.remove("expanded")
+                    }, {once: true})
                 } else {
                     //Expand message to allow user to look up details
                     const expandedDiv = document.createElement("div")
@@ -352,8 +372,11 @@ export class OCRControlElement {
                     const ankiButton = document.createElement("button")
                     ankiButton.classList.add("small")
                     ankiButton.innerText = "Anki"
+                    if(!this.ankiConnected) {
+                        ankiButton.disabled = true
+                    }
                     ankiButton.addEventListener("click", (ev) => {
-                        this.bridge.sendToAnki(text, resultElement.title)
+                        this.bridge.sendToAnki(this.selectedDeckName, text, resultElement.title)
                         ankiButton.innerText = "Sent!"
                         ankiButton.disabled = true
                         resultElement.classList.add("sent-to-anki")
@@ -447,7 +470,6 @@ export class OCRControlElement {
         this.updateMessageList()
         this.translateButton.disabled = false
         this.translateButton.innerText = "Translate"
-        this.translateButton.classList.remove("disabled")
     }
 
     public addSingleTranslationResult(message: string, index: number) {
@@ -465,6 +487,34 @@ export class OCRControlElement {
         }
         
         element.title = this.page.translation[index]
+    }
+
+    public connectToAnki(names: string[]) {
+        this.ankiConnected = true
+        this.ankiConnectDiv.innerHTML = ""
+
+        const deckSelector = document.createElement("select")
+
+        names.forEach(name => {
+            const option = document.createElement("option")
+            option.value = name
+            option.innerText = name
+            deckSelector.appendChild(option)
+        })
+
+        this.selectedDeckName = deckSelector.selectedOptions[0].value
+        deckSelector.addEventListener("change", (ev) => {
+            this.selectedDeckName = deckSelector.selectedOptions[0].value
+        })
+
+        this.ankiConnectDiv.appendChild(deckSelector)
+        this.updateMessageList() //TODO kind of a hack to make sure the anki buttons are drawn properly
+    }
+
+    public failedToConnectToAnki(error: string) {
+        const button = this.ankiConnectDiv.childNodes[0] as HTMLButtonElement
+        button.textContent = "Connect to Anki"
+        button.disabled = false
     }
 
     public addPage() {

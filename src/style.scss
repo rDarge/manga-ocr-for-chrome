@@ -38,7 +38,7 @@
             background-color: cornflowerblue;
             cursor: pointer;
 
-            &.disabled {
+            &:disabled{
                 background-color: grey;
                 color: lightgrey;
             }

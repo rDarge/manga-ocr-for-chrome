@@ -12,14 +12,29 @@ interface TranslationResponse {
     }
 }
 
-interface AnkiRequest { 
-    type: 'AnkiRequest',
+interface AnkiNewCardRequest { 
+    type: 'AnkiNewCardRequest',
     payload: {
+        deck: string,
         front: string,
         back: string,
         tags: string[]
     }
 }
+
+interface AnkiDeckNamesRequest { 
+    type: 'AnkiDeckNamesRequest',
+    payload: {}
+}
+
+interface AnkiDeckNamesResponse { 
+    type: 'AnkiDeckNamesResponse',
+    payload: {
+        names: string[]
+        error: string | null
+    }
+}
+
 
 interface VocabRequest { 
     type: 'VocabRequest',
@@ -80,8 +95,8 @@ type Message = TranslationRequest | TranslationResponse |
     OCRCompleteRequest | ProcessBackendRequest | 
     OCRStartRequest | InitializeOCRRequest |
     DisableOCRRequest | EnableOCRRequest |
-    AnkiRequest | VocabRequest | TranslateOneRequest | 
-    SingleResponse
+    AnkiNewCardRequest | AnkiDeckNamesRequest | AnkiDeckNamesResponse |
+    VocabRequest | TranslateOneRequest | SingleResponse
 
 // For capturing an area on the screen
 interface OCRCaptureParameters {
@@ -129,7 +144,8 @@ interface OCRConfig {
 interface OCRBridge {
     newCapture: (ev: MouseEvent) => void,
     newTranslation: (messages: string[]) => void,
-    translateOne: (message: string, context: string, index: number) => void
-    sendToAnki: (front: string, back: string) => void
-    getVocab: (text: string, index: number) => void
+    translateOne: (message: string, context: string, index: number) => void,
+    getVocab: (text: string, index: number) => void,
+    sendToAnki: (deck: string, front: string, back: string) => void,
+    connectToAnki: () => void,
 }
