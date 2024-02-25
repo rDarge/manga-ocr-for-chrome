@@ -126,12 +126,21 @@ chrome.runtime.onMessage.addListener(
         } else if (message.type === 'TranslationRequest') {
             console.log("attempting to query openai for translation");
             const messages = message.payload.messages as string[];
-            const result = await oaiConnect.translate(messages)
+            let result = null
+            let failed = false
+            try {
+                result = await oaiConnect.translate(messages)
+            } catch (e) {
+                console.error("Error communicating with OAI:", e)
+                failed = true
+            }
+            
             const response: TranslationResponse = {
                 type: 'TranslationResponse',
                 payload: {
                     messages: result
-                }
+                },
+                error: failed
             }
             chrome.tabs.sendMessage(sender.tab.id, response);
         } else if (message.type === 'AnkiNewCardRequest') {

@@ -9,7 +9,8 @@ interface TranslationResponse {
     type: 'TranslationResponse',
     payload: {
         messages: string[]
-    }
+    },
+    error: boolean
 }
 
 interface AnkiNewCardRequest { 

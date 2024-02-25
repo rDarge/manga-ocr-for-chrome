@@ -176,7 +176,7 @@ export class OCRControlElement {
             if(x < page.translation.length) {
                 const tip = page.translation[x];
                 message.classList.add('translation-available');
-                message.title = tip;
+                message.title = tip.replace("<hr>","\n");
             }
 
             this.messageList.append(message);
@@ -376,7 +376,8 @@ export class OCRControlElement {
                         ankiButton.disabled = true
                     }
                     ankiButton.addEventListener("click", (ev) => {
-                        this.bridge.sendToAnki(this.selectedDeckName, text, resultElement.title)
+                        const translation = this.page.translation[index]
+                        this.bridge.sendToAnki(this.selectedDeckName, text, translation)
                         ankiButton.innerText = "Sent!"
                         ankiButton.disabled = true
                         resultElement.classList.add("sent-to-anki")
@@ -472,21 +473,26 @@ export class OCRControlElement {
         this.translateButton.innerText = "Translate"
     }
 
+    public resetTranslationButton() {
+        this.translateButton.disabled = false
+        this.translateButton.innerText = "Translate"
+    }
+
     public addSingleTranslationResult(message: string, index: number) {
         this.page.translation[index] = message;
         const element = this.messageList.childNodes[index] as HTMLLIElement
-        element.title = message
+        element.title = message.replace("<hr>","\n")
     }
 
     public addVocab(vocab: string, index: number) {
         const element = this.messageList.childNodes[index] as HTMLLIElement
         if(this.page.translation[index]) {
-            this.page.translation[index] += '\n' + vocab
+            this.page.translation[index] += '<hr>' + vocab
         } else {
             this.page.translation[index] = vocab
         }
         
-        element.title = this.page.translation[index]
+        element.title = this.page.translation[index].replace("<hr>","\n")
     }
 
     public connectToAnki(names: string[]) {

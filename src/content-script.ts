@@ -18,8 +18,14 @@ chrome.runtime.onMessage.addListener(async function(request, sender, sendRespons
         // debugWindow.present(response.debug.cropped224URL);
         sendResponse("thanks");
     } else if (response.type === 'TranslationResponse') {
+        const translation = response as TranslationResponse
         //Display translated results 
-        controller.addTranslationResult(response.payload.messages);
+        if(translation.error) {
+            toast("Translation request failed. Check extension logs for additional details.")
+            controller.resetTranslationButton()
+        } else {
+            controller.addTranslationResult(response.payload.messages);
+        }
     } else if (response.type === 'VocabResponse') {
         console.log(response.payload.result)
         controller.addVocab(response.payload.result, response.payload.index);
@@ -141,12 +147,13 @@ const bridge: OCRBridge = {
     sendToAnki: (deck: string, front: string, back: string) => {
         const date = new Date()
         const dateTags = "date_added::" + date.getFullYear() + "::" + date.getMonth() + "::" + date.getDate()
+        const backWithSrc = `${back}<hr><small><a href="${document.URL}">original source</a></small>`; 
         const message: AnkiNewCardRequest = {
             type: 'AnkiNewCardRequest',
             payload: {
                 deck,
                 front, 
-                back, 
+                back: backWithSrc,
                 tags: [
                     document.URL,
                     document.location.origin,
